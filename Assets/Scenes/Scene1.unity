@@ -256,7 +256,7 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!1 &1352987185
+--- !u!1 &329640186
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -264,27 +264,29 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1352987186}
+  - component: {fileID: 329640187}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: --Brain--
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1352987186
+--- !u!4 &329640187
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1352987185}
+  m_GameObject: {fileID: 329640186}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 6.95124, y: -1.73117, z: 0}
+  m_LocalPosition: {x: 720.35187, y: 206.89552, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2074119293}
+  - {fileID: 2092576580}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1425283339
@@ -299,7 +301,7 @@ GameObject:
   - component: {fileID: 1425283342}
   - component: {fileID: 1425283341}
   m_Layer: 0
-  m_Name: Image
+  m_Name: Bar FG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -553,8 +555,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2074119293}
   - component: {fileID: 2074119292}
+  - component: {fileID: 2074119294}
   m_Layer: 0
-  m_Name: lobe2-transparent_0
+  m_Name: Lobe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -626,13 +629,49 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2074119291}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.2388, y: -2.3111, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -722.5907, y: -209.20662, z: 0}
   m_LocalScale: {x: 0.22328892, y: 0.22328892, z: 0.22328892}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 329640187}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!58 &2074119294
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2074119291}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0.000002861023, y: 0.000030517578}
+  m_Radius: 3.43
 --- !u!1 &2085148144
 GameObject:
   m_ObjectHideFlags: 0
@@ -643,55 +682,15 @@ GameObject:
   m_Component:
   - component: {fileID: 2085148147}
   - component: {fileID: 2085148146}
-  - component: {fileID: 2085148145}
   - component: {fileID: 2085148149}
   - component: {fileID: 2085148148}
   m_Layer: 0
-  m_Name: Bar
+  m_Name: Bar BG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2085148145
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2085148144}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c7a13c337fc59432a95a17e5465b0c03, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityAtoms.UnityAtomsBaseAtoms.Runtime::UnityAtoms.BaseAtoms.FloatEventReferenceListener
-  _developerDescription: 
-  _unityEventResponse:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 2085148146}
-        m_TargetAssemblyTypeName: UIBar, Assembly-CSharp
-        m_MethodName: UpdateBarUI
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  _actionResponses:
-  - {fileID: 0}
-  _conditions: []
-  _operator: 0
-  _replayEventBufferOnRegister: 1
-  _eventReference:
-    _usage: 0
-    _event: {fileID: 11400000, guid: 2b98fcab9832cc848b44f70e877f1271, type: 2}
-    _eventInstancer: {fileID: 0}
-    _variable: {fileID: 0}
-    _variableInstancer: {fileID: 0}
 --- !u!114 &2085148146
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -718,7 +717,6 @@ MonoBehaviour:
     _constant: {fileID: 0}
     _variable: {fileID: 0}
     _variableInstancer: {fileID: 0}
-  subscribeToCurrentValueDirectly: 0
   shakeStrength: 5
   shakeDuration: 0.3
   shakeVibrato: 50
@@ -863,20 +861,18 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2092576578}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -720.35187, y: -206.89552, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 329640187}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 31024755}
-  - {fileID: 2092576580}
-  - {fileID: 1352987186}
-  - {fileID: 2074119293}
+  - {fileID: 329640187}
   - {fileID: 2038214123}
   - {fileID: 1653883648}

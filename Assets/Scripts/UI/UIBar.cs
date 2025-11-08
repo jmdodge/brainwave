@@ -12,7 +12,6 @@ public class UIBar : MonoBehaviour
     [SerializeField] private float healthChangeTransitionTime = .2f;
     [SerializeField] private FloatReference currentValueRef;
     [SerializeField] private FloatReference maxValueRef;
-    [SerializeField] private bool subscribeToCurrentValueDirectly;
     [SerializeField] private float shakeStrength = 5f;
     [SerializeField] private float shakeDuration = 0.3f;
     [SerializeField] private int shakeVibrato = 50;
@@ -24,21 +23,21 @@ public class UIBar : MonoBehaviour
 
     private void OnEnable()
     {
+        currentValueRef.GetEvent<FloatEvent>()?.Register(UpdateBarUI);
+        
+        // Make sure the image of our child bar is the same dimensions as the parent bar
+        if (healthBarImage != null)
+        {
+            healthBarImage.rectTransform.sizeDelta = GetComponent<RectTransform>().sizeDelta;
+        }
+
         // Initialize our bar value when we turn on.
         UpdateBarUI();
-
-        // Add a listener directly to our variable reference. We could have done this with an event listener on the component too.
-        if (subscribeToCurrentValueDirectly)
-        {
-        }
     }
 
     private void OnDisable()
     {
-        // Remove our listener when disabled, if applied.
-        if (subscribeToCurrentValueDirectly)
-        {
-        }
+        currentValueRef.GetEvent<FloatEvent>()?.Unregister(UpdateBarUI);
     }
 
     public void UpdateBarUI()
@@ -50,9 +49,8 @@ public class UIBar : MonoBehaviour
         {
             Debug.Log("UpdateBarUI called with value:" + currentValueRef.Value);
 
-            float normalizedValue = maxValueRef.Value != 0f
-                ? currentValueRef.Value / maxValueRef.Value
-                : 0f;
+            float normalizedValue = 0f;
+            if(maxValueRef > 0f) normalizedValue = currentValueRef.Value / maxValueRef.Value;
 
             Sequence sequence = DOTween.Sequence();
             sequence.Append(healthBarImage.DOFillAmount(normalizedValue, healthChangeTransitionTime));
