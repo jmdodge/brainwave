@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b46c0f62c93543f88d3eb693740d091, type: 3}
+  m_Name: HungyMeter
+  m_EditorClassIdentifier: UnityAtoms.UnityAtomsBaseAtoms.Runtime::UnityAtoms.BaseAtoms.FloatVariable
+  _developerDescription: 
+  _id: 
+  _value: 50
+  _changed: {fileID: 11400000, guid: 2b98fcab9832cc848b44f70e877f1271, type: 2}
+  _changedWithHistory: {fileID: 0}
+  _triggerChangedOnOnEnable: 0
+  _triggerChangedWithHistoryOnOnEnable: 0
+  _oldValue: 50
+  _initialValue: 0
+  _preChangeTransformers:
+  - {fileID: 11400000, guid: 293a513a9887e3540a7106cf93753baf, type: 2}
