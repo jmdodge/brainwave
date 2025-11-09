@@ -12,6 +12,9 @@ public class SineWaveGenerator : MonoBehaviour
         Triangle
     }
 
+    [Tooltip("Use scientific pitch notation, e.g. A4, C#3")]
+    public bool useNoteInput;
+    public string note = "A4";
     [Range(20f, 2000f)] public float frequency = 440f;
     [Range(0f, 1f)] public float amplitude = 0.1f;
     public Waveform waveform = Waveform.Sine;
@@ -37,6 +40,10 @@ public class SineWaveGenerator : MonoBehaviour
 
     double envelopeValue;
     EnvelopeState envelopeState = EnvelopeState.Attack;
+    double resolvedFrequency = 440.0;
+    bool cachedUseNoteInput;
+    string cachedNoteInput = string.Empty;
+    float cachedFrequencyValue;
 
     void Awake()
     {
@@ -46,6 +53,10 @@ public class SineWaveGenerator : MonoBehaviour
         autoReleasePending = false;
         envelopeValue = 0.0;
         envelopeState = EnvelopeState.Idle;
+        cachedUseNoteInput = useNoteInput;
+        cachedNoteInput = note;
+        cachedFrequencyValue = frequency;
+        RefreshFrequencyCache(true);
         UpdateFilterCoefficients(sampleRate, cutoff, resonance);
     }
 
@@ -56,6 +67,14 @@ public class SineWaveGenerator : MonoBehaviour
             NoteOn();
             autoReleasePending = true;
         }
+    }
+
+    void OnValidate()
+    {
+        cachedUseNoteInput = useNoteInput;
+        cachedNoteInput = note;
+        cachedFrequencyValue = frequency;
+        RefreshFrequencyCache(true);
     }
 
     void OnAudioFilterRead(float[] data, int channels)
@@ -82,7 +101,11 @@ public class SineWaveGenerator : MonoBehaviour
                 envelopeState = EnvelopeState.Release;
         }
 
-        double increment = frequency * tau / sampleRate;
+        RefreshFrequencyCache();
+        double currentFrequency = Interlocked.CompareExchange(ref resolvedFrequency, 0.0, 0.0);
+        if (currentFrequency <= 0.0)
+            currentFrequency = 440.0;
+        double increment = currentFrequency * tau / sampleRate;
 
         for (int i = 0; i < data.Length; i += channels)
         {
@@ -171,6 +194,8 @@ public class SineWaveGenerator : MonoBehaviour
         return envelopeValue;
     }
 
+    public double CurrentFrequency => Interlocked.CompareExchange(ref resolvedFrequency, 0.0, 0.0);
+
     public void NoteOn()
     {
         Volatile.Write(ref gateRequested, true);
@@ -246,5 +271,111 @@ public class SineWaveGenerator : MonoBehaviour
         z1 = b1 * input + z2 - a1 * output;
         z2 = b2 * input - a2 * output;
         return output;
+    }
+
+    public void SetNoteName(string noteName)
+    {
+        note = noteName;
+        useNoteInput = true;
+        RefreshFrequencyCache(true);
+    }
+
+    public void SetFrequency(float hz)
+    {
+        frequency = hz;
+        useNoteInput = false;
+        RefreshFrequencyCache(true);
+    }
+
+    void RefreshFrequencyCache(bool force = false)
+    {
+        if (useNoteInput)
+        {
+            if (force || !cachedUseNoteInput || !string.Equals(cachedNoteInput, note, StringComparison.Ordinal))
+            {
+                if (TryParseNote(note, out double freq))
+                {
+                    Interlocked.Exchange(ref resolvedFrequency, freq);
+                }
+                else
+                {
+                    Interlocked.Exchange(ref resolvedFrequency, Mathf.Max(20f, frequency));
+                }
+                cachedNoteInput = note;
+                cachedUseNoteInput = true;
+            }
+        }
+        else
+        {
+            if (force || cachedUseNoteInput || !Mathf.Approximately(cachedFrequencyValue, frequency))
+            {
+                Interlocked.Exchange(ref resolvedFrequency, Mathf.Max(20f, frequency));
+                cachedFrequencyValue = frequency;
+                cachedUseNoteInput = false;
+            }
+        }
+    }
+
+    static bool TryParseNote(string input, out double frequencyOut)
+    {
+        frequencyOut = 0.0;
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+
+        string trimmed = input.Trim();
+        if (trimmed.Length < 2)
+            return false;
+
+        char letter = char.ToUpperInvariant(trimmed[0]);
+        int semitoneFromC;
+        switch (letter)
+        {
+            case 'C': semitoneFromC = 0; break;
+            case 'D': semitoneFromC = 2; break;
+            case 'E': semitoneFromC = 4; break;
+            case 'F': semitoneFromC = 5; break;
+            case 'G': semitoneFromC = 7; break;
+            case 'A': semitoneFromC = 9; break;
+            case 'B': semitoneFromC = 11; break;
+            default: return false;
+        }
+
+        int index = 1;
+        if (index < trimmed.Length)
+        {
+            char accidental = trimmed[index];
+            if (accidental == '#')
+            {
+                semitoneFromC += 1;
+                index++;
+            }
+            else if (accidental == 'b' || accidental == 'B')
+            {
+                semitoneFromC -= 1;
+                index++;
+            }
+        }
+
+        if (index >= trimmed.Length)
+            return false;
+
+        if (!int.TryParse(trimmed.Substring(index), out int octave))
+            return false;
+
+        while (semitoneFromC < 0)
+        {
+            semitoneFromC += 12;
+            octave -= 1;
+        }
+        while (semitoneFromC >= 12)
+        {
+            semitoneFromC -= 12;
+            octave += 1;
+        }
+
+        int midiNote = (octave + 1) * 12 + semitoneFromC;
+        double exponent = (midiNote - 69) / 12.0;
+        frequencyOut = 440.0 * Math.Pow(2.0, exponent);
+        return frequencyOut > 0.0;
     }
 }

@@ -48,12 +48,15 @@ public class BrainwaveController : MonoBehaviour
             if (i >= ringInitialScales.Count)
             {
                 ringInitialScales.Add(ring.transform.localScale);
+                ring.SetActive(false);
             }
 
             Vector3 initialScale = ringInitialScales[i];
 
             ring.transform.localScale = Vector3.zero;
-            Tween scaleTween = ring.transform.DOScale(initialScale, ringAnimationDuration).SetEase(Ease.OutBack);
+            Tween scaleTween = ring.transform.DOScale(initialScale, ringAnimationDuration)
+                .SetEase(Ease.OutBack)
+                .OnStart(() => ring.SetActive(true));
             ringSequence.Insert(currentStartTime, scaleTween);
 
             Tween shakeTween = ring.transform.DOShakeScale(ringShakeDuration, ringShakeStrength);
@@ -63,7 +66,18 @@ public class BrainwaveController : MonoBehaviour
         }
 
         ringSequence.Append(transform.DOScale(Vector3.zero, controllerCollapseDuration).SetEase(Ease.InBack));
-        ringSequence.OnComplete(() => isClicking = false);
+        ringSequence.OnComplete(() =>
+        {
+            foreach (GameObject ring in rings)
+            {
+                if (ring != null)
+                {
+                    ring.SetActive(false);
+                }
+            }
+
+            isClicking = false;
+        });
         ringSequence.Play();
     }
 
@@ -76,6 +90,7 @@ public class BrainwaveController : MonoBehaviour
             if (ring != null)
             {
                 ringInitialScales.Add(ring.transform.localScale);
+                ring.SetActive(false);
             }
             else
             {
