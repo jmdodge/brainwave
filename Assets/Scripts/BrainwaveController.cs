@@ -1,34 +1,18 @@
+using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
 
 public class BrainwaveController : MonoBehaviour
 {
-    [SerializeField] private GameObject ringSm;
-    [SerializeField] private GameObject ringM;
-    [SerializeField] private GameObject ringLg;
+    [SerializeField] private List<GameObject> rings = new List<GameObject>();
     [SerializeField] private float ringAnimationDuration = 0.1f;
-    private Vector3 ringSmInitialScale;
-    private Vector3 ringMInitialScale;
-    private Vector3 ringLgInitialScale;
+    private readonly List<Vector3> ringInitialScales = new List<Vector3>();
     private Sequence ringSequence;
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        if (ringSm != null)
-        {
-            ringSmInitialScale = ringSm.transform.localScale;
-        }
-
-        if (ringM != null)
-        {
-            ringMInitialScale = ringM.transform.localScale;
-        }
-
-        if (ringLg != null)
-        {
-            ringLgInitialScale = ringLg.transform.localScale;
-        }
+        CacheInitialScales();
     }
 
     // Update is called once per frame
@@ -49,27 +33,58 @@ public class BrainwaveController : MonoBehaviour
             ringSequence.Kill();
         }
 
+        if (ringInitialScales.Count != rings.Count)
+        {
+            CacheInitialScales();
+        }
+
         ringSequence = DOTween.Sequence();
+        Tween previousShake = null;
 
-        if (ringSm != null)
+        for (int i = 0; i < rings.Count; i++)
         {
-            ringSm.transform.localScale = Vector3.zero;
-            ringSequence.Append(ringSm.transform.DOScale(ringSmInitialScale, ringAnimationDuration).SetEase(Ease.OutBack));
-            ringSequence.Append(ringSm.transform.DOShakeScale(0.2f, 0.1f));
-        }
+            GameObject ring = rings[i];
+            if (ring == null) continue;
 
-        if (ringM != null)
-        {
-            ringM.transform.localScale = Vector3.zero;
-            ringSequence.Append(ringM.transform.DOScale(ringMInitialScale, ringAnimationDuration).SetEase(Ease.OutBack));
-        }
+            if (i >= ringInitialScales.Count)
+            {
+                ringInitialScales.Add(ring.transform.localScale);
+            }
 
-        if (ringLg != null)
-        {
-            ringLg.transform.localScale = Vector3.zero;
-            ringSequence.Append(ringLg.transform.DOScale(ringLgInitialScale, ringAnimationDuration).SetEase(Ease.OutBack));
+            Vector3 initialScale = ringInitialScales[i];
+
+            ring.transform.localScale = Vector3.zero;
+            Tween scaleTween = ring.transform.DOScale(initialScale, ringAnimationDuration).SetEase(Ease.OutBack);
+            if (previousShake != null)
+            {
+                ringSequence.Join(scaleTween);
+            }
+            else
+            {
+                ringSequence.Append(scaleTween);
+            }
+
+            Tween shakeTween = ring.transform.DOShakeScale(0.2f, 0.1f);
+            ringSequence.Append(shakeTween);
+            previousShake = shakeTween;
         }
 
         ringSequence.Play();
+    }
+
+    private void CacheInitialScales()
+    {
+        ringInitialScales.Clear();
+        foreach (GameObject ring in rings)
+        {
+            if (ring != null)
+            {
+                ringInitialScales.Add(ring.transform.localScale);
+            }
+            else
+            {
+                ringInitialScales.Add(Vector3.one);
+            }
+        }
     }
 }

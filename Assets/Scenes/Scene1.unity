@@ -812,9 +812,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5d2c614122051142acf6ec929687341, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BrainwaveController
-  ringSm: {fileID: 1276051550}
-  ringM: {fileID: 900250221}
-  ringLg: {fileID: 867262846}
+  rings:
+  - {fileID: 1276051550}
+  - {fileID: 900250221}
+  - {fileID: 867262846}
+  ringAnimationDuration: 0.1
 --- !u!114 &1476951969
 MonoBehaviour:
   m_ObjectHideFlags: 0
