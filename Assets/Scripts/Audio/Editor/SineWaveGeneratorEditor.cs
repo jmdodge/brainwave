@@ -7,14 +7,18 @@ public class SineWaveGeneratorEditor : Editor
 {
     public override void OnInspectorGUI()
     {
-        serializedObject.Update();
-        DrawDefaultInspector();
+        if (target == null)
+            return;
 
-        var generator = (SineWaveGenerator)target;
+        serializedObject.Update();
+        Editor.DrawPropertiesExcluding(serializedObject, "m_Script");
+        serializedObject.ApplyModifiedProperties();
+
+        var generator = target as SineWaveGenerator;
+        if (generator == null)
+            return;
 
         EditorGUILayout.LabelField("Resolved Frequency", $"{generator.CurrentFrequency:F2} Hz");
-
-        serializedObject.ApplyModifiedProperties();
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Live Controls", EditorStyles.boldLabel);

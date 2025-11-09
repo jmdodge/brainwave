@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class BrainwaveController : MonoBehaviour
 {
@@ -9,11 +10,12 @@ public class BrainwaveController : MonoBehaviour
     [SerializeField] private float ringShakeDuration = 0.8f;
     [SerializeField] private float ringShakeStrength = 0.1f;
     [SerializeField] private float controllerCollapseDuration = 0.3f;
+    [SerializeField] private UnityEvent onAnimationComplete;
     private readonly List<Vector3> ringInitialScales = new List<Vector3>();
     private Sequence ringSequence;
     private Vector3 controllerInitialScale;
     private bool isClicking = false;
-    
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -30,7 +32,7 @@ public class BrainwaveController : MonoBehaviour
 
         // Move our object to the clicked position, but get z from our current position
         transform.position = new Vector3(clickedPosition.x, clickedPosition.y, transform.position.z);
-        
+
         if (ringSequence != null && ringSequence.IsActive()) ringSequence.Kill();
 
         if (ringInitialScales.Count != rings.Count) CacheInitialScales();
@@ -65,7 +67,12 @@ public class BrainwaveController : MonoBehaviour
             currentStartTime += overlapOffset;
         }
 
-        ringSequence.Append(transform.DOScale(Vector3.zero, controllerCollapseDuration).SetEase(Ease.InBack));
+        // Scale down our main parent and trigger our event, which plays a sound at the moment.
+        Tween scaleParentTween = transform.DOScale(Vector3.zero, controllerCollapseDuration)
+            .SetEase(Ease.InBack)
+            .OnStart(() => onAnimationComplete.Invoke());
+        ringSequence.Append(scaleParentTween);
+
         ringSequence.OnComplete(() =>
         {
             foreach (GameObject ring in rings)
