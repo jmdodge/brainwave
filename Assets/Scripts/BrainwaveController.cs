@@ -5,7 +5,9 @@ using UnityEngine;
 public class BrainwaveController : MonoBehaviour
 {
     [SerializeField] private List<GameObject> rings = new List<GameObject>();
-    [SerializeField] private float ringAnimationDuration = 0.1f;
+    [SerializeField] private float ringAnimationDuration = 0.4f;
+    [SerializeField] private float ringShakeDuration = 0.8f;
+    [SerializeField] private float ringShakeStrength = 0.1f;
     private readonly List<Vector3> ringInitialScales = new List<Vector3>();
     private Sequence ringSequence;
     
@@ -39,7 +41,9 @@ public class BrainwaveController : MonoBehaviour
         }
 
         ringSequence = DOTween.Sequence();
-        Tween previousShake = null;
+        float ringTotalDuration = ringAnimationDuration; //+ ringShakeDuration;
+        float overlapOffset = ringTotalDuration * 0.5f;
+        float currentStartTime = 0f;
 
         for (int i = 0; i < rings.Count; i++)
         {
@@ -55,18 +59,12 @@ public class BrainwaveController : MonoBehaviour
 
             ring.transform.localScale = Vector3.zero;
             Tween scaleTween = ring.transform.DOScale(initialScale, ringAnimationDuration).SetEase(Ease.OutBack);
-            if (previousShake != null)
-            {
-                ringSequence.Join(scaleTween);
-            }
-            else
-            {
-                ringSequence.Append(scaleTween);
-            }
+            ringSequence.Insert(currentStartTime, scaleTween);
 
-            Tween shakeTween = ring.transform.DOShakeScale(0.2f, 0.1f);
-            ringSequence.Append(shakeTween);
-            previousShake = shakeTween;
+            Tween shakeTween = ring.transform.DOShakeScale(ringShakeDuration, ringShakeStrength);
+            ringSequence.Insert(currentStartTime + ringAnimationDuration, shakeTween);
+
+            currentStartTime += overlapOffset;
         }
 
         ringSequence.Play();
