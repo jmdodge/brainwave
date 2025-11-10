@@ -36,6 +36,7 @@ public class SineWaveGenerator : MonoBehaviour
 
     volatile bool gateRequested;
     volatile bool autoReleasePending;
+    int retriggerPending;
     bool gateActive;
 
     double envelopeValue;
@@ -99,6 +100,13 @@ public class SineWaveGenerator : MonoBehaviour
             gateActive = false;
             if (envelopeState != EnvelopeState.Idle)
                 envelopeState = EnvelopeState.Release;
+        }
+
+        if (Interlocked.Exchange(ref retriggerPending, 0) > 0)
+        {
+            gateActive = true;
+            envelopeState = EnvelopeState.Attack;
+            envelopeValue = 0.0;
         }
 
         RefreshFrequencyCache();
@@ -198,6 +206,7 @@ public class SineWaveGenerator : MonoBehaviour
 
     public void NoteOn()
     {
+        Interlocked.Increment(ref retriggerPending);
         Volatile.Write(ref gateRequested, true);
     }
 
@@ -219,6 +228,7 @@ public class SineWaveGenerator : MonoBehaviour
         Volatile.Write(ref gateRequested, false);
         gateActive = false;
         autoReleasePending = false;
+        retriggerPending = 0;
         envelopeValue = 0.0;
         envelopeState = EnvelopeState.Idle;
         z1 = z2 = 0.0;
