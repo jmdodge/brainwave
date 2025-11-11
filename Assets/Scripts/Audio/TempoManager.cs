@@ -6,7 +6,7 @@ using UnityEngine;
  * Provides a global beat clock backed by Unity's DSP time so gameplay systems can stay phase-locked to music.
  *
  * Example:
- * var tempoManager = FindObjectOfType<TempoManager>();
+ * var tempoManager = FindAnyObjectByType<TempoManager>();
  * double dspStart = AudioSettings.dspTime + 0.1;
  * tempoManager.SetTempo(120f, dspStart);
  * tempoManager.StartTransport(dspStart);

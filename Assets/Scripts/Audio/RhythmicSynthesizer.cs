@@ -43,7 +43,7 @@ public sealed class RhythmicSynthesizer : MonoBehaviour
      */
     void OnEnable()
     {
-        if (tempoManager == null) tempoManager = FindObjectOfType<TempoManager>();
+        if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
         if (sineWaveGenerator == null) sineWaveGenerator = GetComponent<SineWaveGenerator>();
     }
 

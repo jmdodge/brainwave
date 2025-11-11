@@ -51,7 +51,7 @@ public sealed class SongPlayer : MonoBehaviour
             return;
         }
 
-        if (tempoManager == null) tempoManager = FindObjectOfType<TempoManager>();
+        if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
 
         double dspNow = AudioSettings.dspTime;
         scheduledStartDspTime = dspNow + Mathf.Max(0.0f, (float)leadInSeconds);

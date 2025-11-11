@@ -39,7 +39,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
 
     void OnEnable()
     {
-        if (tempoManager == null) tempoManager = FindObjectOfType<TempoManager>();
+        if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
         if (triggerAudio && sineWaveGenerator == null) sineWaveGenerator = GetComponent<SineWaveGenerator>();
         if (!playOnStart) return;
         StartSequence();

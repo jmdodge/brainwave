@@ -35,7 +35,7 @@ public sealed class StepSequencer : MonoBehaviour
 
     void OnEnable()
     {
-        if (tempoManager == null) tempoManager = FindObjectOfType<TempoManager>();
+        if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
         if (sineWaveGenerator == null) sineWaveGenerator = GetComponent<SineWaveGenerator>();
         if (!playOnStart) return;
         StartSequence();

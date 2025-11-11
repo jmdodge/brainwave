@@ -25,7 +25,7 @@ public sealed class VulnerableEnemy : MonoBehaviour
      */
     void OnEnable()
     {
-        if (tempoManager == null) tempoManager = FindObjectOfType<TempoManager>();
+        if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
     }
 
     /**
