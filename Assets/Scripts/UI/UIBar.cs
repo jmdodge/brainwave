@@ -47,8 +47,6 @@ public class UIBar : MonoBehaviour
 
         if (healthBarImage != null)
         {
-            Debug.Log("UpdateBarUI called with value:" + currentValueRef.Value);
-
             float normalizedValue = 0f;
             if(maxValueRef > 0f) normalizedValue = currentValueRef.Value / maxValueRef.Value;
 

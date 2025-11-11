@@ -34,7 +34,7 @@ public class SineWaveGenerator : MonoBehaviour
     double b0, b1, b2, a1, a2;
     double z1, z2;
 
-    volatile bool gateRequested;
+    bool gateRequested;
     volatile bool autoReleasePending;
     int retriggerPending;
     bool gateActive;
