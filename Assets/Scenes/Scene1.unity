@@ -617,19 +617,19 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 537740678}
-  - component: {fileID: 537740683}
+  - component: {fileID: 537740685}
   - component: {fileID: 537740682}
+  - component: {fileID: 537740679}
   - component: {fileID: 537740681}
   - component: {fileID: 537740680}
-  - component: {fileID: 537740679}
   - component: {fileID: 537740684}
   m_Layer: 0
-  m_Name: BrainWave (1)
+  m_Name: BrainWave Beats
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &537740678
 Transform:
   m_ObjectHideFlags: 0
@@ -661,11 +661,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencerEvents
-  tempoManager: {fileID: 0}
+  tempoManager: {fileID: 1907658354}
   sineWaveGenerator: {fileID: 0}
-  triggerAudio: 1
-  playOnStart: 1
-  loop: 1
+  triggerAudio: 0
+  playOnStart: 0
+  loop: 0
   canStartTransport: 0
   standaloneBpm: 100
   quantizeStart: 1
@@ -674,16 +674,16 @@ MonoBehaviour:
   - rest: 1
     tieFromPrevious: 0
     useNoteName: 1
-    noteName: A4
+    noteName: 
     frequencyHz: 440
     durationBeats: 1
     onStepStart:
       m_PersistentCalls:
         m_Calls:
-        - m_Target: {fileID: 181729407}
-          m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-          m_MethodName: SetActive
-          m_Mode: 6
+        - m_Target: {fileID: 537740685}
+          m_TargetAssemblyTypeName: BrainwaveControllerBeats, Assembly-CSharp
+          m_MethodName: NextRing
+          m_Mode: 1
           m_Arguments:
             m_ObjectArgument: {fileID: 0}
             m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -694,19 +694,79 @@ MonoBehaviour:
           m_CallState: 2
     onStepEnd:
       m_PersistentCalls:
+        m_Calls: []
+  - rest: 1
+    tieFromPrevious: 0
+    useNoteName: 1
+    noteName: 
+    frequencyHz: 440
+    durationBeats: 1
+    onStepStart:
+      m_PersistentCalls:
         m_Calls:
-        - m_Target: {fileID: 181729407}
-          m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-          m_MethodName: SetActive
-          m_Mode: 6
+        - m_Target: {fileID: 537740685}
+          m_TargetAssemblyTypeName: BrainwaveControllerBeats, Assembly-CSharp
+          m_MethodName: NextRing
+          m_Mode: 1
           m_Arguments:
             m_ObjectArgument: {fileID: 0}
             m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
             m_IntArgument: 0
             m_FloatArgument: 0
             m_StringArgument: 
-            m_BoolArgument: 0
+            m_BoolArgument: 1
           m_CallState: 2
+    onStepEnd:
+      m_PersistentCalls:
+        m_Calls: []
+  - rest: 1
+    tieFromPrevious: 0
+    useNoteName: 1
+    noteName: 
+    frequencyHz: 440
+    durationBeats: 1
+    onStepStart:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 537740685}
+          m_TargetAssemblyTypeName: BrainwaveControllerBeats, Assembly-CSharp
+          m_MethodName: NextRing
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 1
+          m_CallState: 2
+    onStepEnd:
+      m_PersistentCalls:
+        m_Calls: []
+  - rest: 1
+    tieFromPrevious: 0
+    useNoteName: 1
+    noteName: 
+    frequencyHz: 440
+    durationBeats: 1
+    onStepStart:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 537740685}
+          m_TargetAssemblyTypeName: BrainwaveControllerBeats, Assembly-CSharp
+          m_MethodName: CompleteSequence
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 1
+          m_CallState: 2
+    onStepEnd:
+      m_PersistentCalls:
+        m_Calls: []
 --- !u!169 &537740680
 AudioLowPassFilter:
   m_ObjectHideFlags: 0
@@ -845,6 +905,18 @@ MonoBehaviour:
   _unityEventResponse:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 537740685}
+        m_TargetAssemblyTypeName: BrainwaveControllerBeats, Assembly-CSharp
+        m_MethodName: BeginSequence
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 537740679}
         m_TargetAssemblyTypeName: StepSequencerEvents, Assembly-CSharp
         m_MethodName: StartSequence
@@ -867,44 +939,6 @@ MonoBehaviour:
     _eventInstancer: {fileID: 0}
     _variable: {fileID: 0}
     _variableInstancer: {fileID: 0}
---- !u!114 &537740683
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 537740677}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e5d2c614122051142acf6ec929687341, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BrainwaveController
-  rings:
-  - {fileID: 181729407}
-  - {fileID: 1130039184}
-  - {fileID: 1249241131}
-  ringAnimationDuration: 0.555
-  ringShakeDuration: 0.4
-  ringShakeStrength: 0.1
-  controllerCollapseDuration: 0.3
-  onAnimationComplete:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 537740681}
-        m_TargetAssemblyTypeName: UnityEngine.AudioSource, UnityEngine
-        m_MethodName: Play
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  quantizeToBeat: 1
-  quantizationBeats: 1
-  tempoManager: {fileID: 1907658354}
 --- !u!114 &537740684
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -929,6 +963,30 @@ MonoBehaviour:
   sustain: 0.7
   release: 0.2
   triggerOnEnable: 1
+--- !u!114 &537740685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 537740677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ca688f9b0d945542b52d27c90c9bd7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BrainwaveControllerBeats
+  rings:
+  - {fileID: 181729407}
+  - {fileID: 1130039184}
+  - {fileID: 1249241131}
+  ringScaleDurationBeats: 0.25
+  ringShakeDurationBeats: 0.5
+  ringShakeStrength: 0.1
+  controllerCollapseDurationBeats: 0.25
+  onSequenceComplete:
+    m_PersistentCalls:
+      m_Calls: []
+  tempoManager: {fileID: 1907658354}
 --- !u!1 &603558238
 GameObject:
   m_ObjectHideFlags: 0
@@ -3416,7 +3474,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1476951967
 Transform:
   m_ObjectHideFlags: 0
@@ -4918,7 +4976,6 @@ GameObject:
   - component: {fileID: 2074119293}
   - component: {fileID: 2074119292}
   - component: {fileID: 2074119294}
-  - component: {fileID: 2074119296}
   - component: {fileID: 2074119295}
   m_Layer: 0
   m_Name: Lobe
@@ -5061,21 +5118,6 @@ MonoBehaviour:
     _variable: {fileID: 11400000, guid: 11b8b4f80239b6240954001dfd17f104, type: 2}
     _variableInstancer: {fileID: 0}
   cooldownSeconds: 2
---- !u!114 &2074119296
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2074119291}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 674f9eeaeb1e38c4daf431538ca78deb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  onActivated:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!1 &2085148144
 GameObject:
   m_ObjectHideFlags: 0

@@ -9,3 +9,7 @@ For simple if statements that return on some condition or similar, I prefer a on
 ```
 if (Time.time - _lastTriggerTime < cooldownSeconds) return;
 ```
+
+Provide high level code commenting when creating new code to help the developer understand the basic flow.
+Add multiline/block comments (/** style) to all methods unless they are very trivial that explain the purpose of the function. 
+Add inline comments to natural stanzas of code so that there is a nice readable rhythm in comments that isn't too verbose but that generally covers all code flow.

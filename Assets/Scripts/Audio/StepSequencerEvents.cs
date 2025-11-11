@@ -14,8 +14,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
     [SerializeField] bool canStartTransport;
     [SerializeField] float standaloneBpm = 100f;
     [SerializeField] bool quantizeStart = true;
-    [Min(0f)]
-    [SerializeField] float startQuantizationBeats = 1f;
+    [Min(0f)] [SerializeField] float startQuantizationBeats = 1f;
     [SerializeField] List<SequenceStep> steps = new() { SequenceStep.Default() };
 
     readonly List<RuntimeStep> runtimeSteps = new();
@@ -36,6 +35,20 @@ public sealed class StepSequencerEvents : MonoBehaviour
     bool startScheduled;
     double scheduledStartBeat;
     TempoManager.TempoEventHandle startHandle;
+
+#if UNITY_EDITOR
+    /**
+     * Ensures newly added steps have their UnityEvents instantiated so the inspector displays them normally.
+     */
+    void OnValidate()
+    {
+        if (steps == null) return;
+        foreach (SequenceStep step in steps)
+        {
+            EnsureUnityEvents(step);
+        }
+    }
+#endif
 
     void OnEnable()
     {
@@ -71,7 +84,8 @@ public sealed class StepSequencerEvents : MonoBehaviour
             sineWaveGenerator = GetComponent<SineWaveGenerator>();
             if (sineWaveGenerator == null)
             {
-                Debug.LogWarning("StepSequencerEvents is set to trigger audio but has no SineWaveGenerator reference.", this);
+                Debug.LogWarning("StepSequencerEvents is set to trigger audio but has no SineWaveGenerator reference.",
+                    this);
             }
         }
 
@@ -185,6 +199,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
         {
             cycleLengthBeats += Math.Max((double)minStepDurationBeats, runtimeSteps[i].durationBeats);
         }
+
         cycleLengthBeats = Math.Max((double)minStepDurationBeats, cycleLengthBeats);
     }
 
