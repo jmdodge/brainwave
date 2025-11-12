@@ -46,6 +46,12 @@ public class BrainwaveControllerBeats : MonoBehaviour
     {
         KillActiveTweens();
     }
+    
+    public void SetPosition(Vector3 worldPosition)
+    {
+        Vector3 alignedPosition = new Vector3(worldPosition.x, worldPosition.y, transform.position.z);
+        transform.position = alignedPosition;
+    }
 
     /**
      * Prepares the controller for a new beat-driven sequence at the supplied world position.
@@ -53,8 +59,7 @@ public class BrainwaveControllerBeats : MonoBehaviour
      */
     public void BeginSequence(Vector3 worldPosition)
     {
-        Vector3 alignedPosition = new Vector3(worldPosition.x, worldPosition.y, transform.position.z);
-        transform.position = alignedPosition;
+        SetPosition(worldPosition);
         BeginSequence();
     }
 

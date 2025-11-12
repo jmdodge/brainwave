@@ -32,6 +32,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
     int currentStepIndex;
     bool isRunning;
     bool noteActive;
+    SineWaveGenerator activeGenerator;
     bool startScheduled;
     double scheduledStartBeat;
     TempoManager.TempoEventHandle startHandle;
@@ -110,10 +111,11 @@ public sealed class StepSequencerEvents : MonoBehaviour
         }
 
         isRunning = false;
-        if (noteActive && triggerAudio && sineWaveGenerator != null)
+        if (noteActive && triggerAudio && activeGenerator != null)
         {
-            sineWaveGenerator.NoteOff();
+            activeGenerator.NoteOff();
             noteActive = false;
+            activeGenerator = null;
         }
     }
 
@@ -145,10 +147,11 @@ public sealed class StepSequencerEvents : MonoBehaviour
         RuntimeStep completedStep = runtimeSteps[completedIndex];
 
         bool continueNote = ShouldContinueNote();
-        if (noteActive && !continueNote && triggerAudio && sineWaveGenerator != null)
+        if (noteActive && !continueNote && triggerAudio && activeGenerator != null)
         {
-            sineWaveGenerator.NoteOff();
+            activeGenerator.NoteOff();
             noteActive = false;
+            activeGenerator = null;
         }
 
         InvokeStepEndEvent(completedStep);
@@ -173,17 +176,19 @@ public sealed class StepSequencerEvents : MonoBehaviour
 
         if (step.rest)
         {
-            if (noteActive && triggerAudio && sineWaveGenerator != null)
+            if (noteActive && triggerAudio && activeGenerator != null)
             {
-                sineWaveGenerator.NoteOff();
+                activeGenerator.NoteOff();
                 noteActive = false;
+                activeGenerator = null;
             }
         }
-        else if (!tiesFromPrevious && triggerAudio && sineWaveGenerator != null)
+        else if (!tiesFromPrevious && triggerAudio && step.generator != null)
         {
             ApplyStepPitch(step);
-            sineWaveGenerator.NoteOn();
+            step.generator.NoteOn();
             noteActive = true;
+            activeGenerator = step.generator;
         }
 
         InvokeStepStartEvent(step);
@@ -218,6 +223,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
             bool sanitizedTie = !step.rest && step.tieFromPrevious;
             bool sanitizedUseNoteName = step.useNoteName;
             string sanitizedNoteName = string.IsNullOrWhiteSpace(step.noteName) ? defaultNoteName : step.noteName;
+            SineWaveGenerator resolvedGenerator = step.sineWaveGenerator != null ? step.sineWaveGenerator : sineWaveGenerator;
 
             runtimeSteps.Add(new RuntimeStep(
                 step,
@@ -226,7 +232,8 @@ public sealed class StepSequencerEvents : MonoBehaviour
                 sanitizedUseNoteName,
                 sanitizedNoteName,
                 sanitizedFrequency,
-                sanitizedDuration));
+                sanitizedDuration,
+                resolvedGenerator));
 
             EnsureUnityEvents(step);
         }
@@ -321,14 +328,14 @@ public sealed class StepSequencerEvents : MonoBehaviour
 
     void ApplyStepPitch(RuntimeStep step)
     {
-        if (!triggerAudio || sineWaveGenerator == null) return;
+        if (!triggerAudio || step.generator == null) return;
         if (step.useNoteName)
         {
-            sineWaveGenerator.SetNoteName(step.noteName);
+            step.generator.SetNoteName(step.noteName);
         }
         else
         {
-            sineWaveGenerator.SetFrequency(step.frequencyHz);
+            step.generator.SetFrequency(step.frequencyHz);
         }
     }
 
@@ -386,6 +393,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
         currentStepStartBeat = startBeat;
         isRunning = true;
         noteActive = false;
+        activeGenerator = null;
         StartCurrentStep();
     }
 
@@ -422,6 +430,9 @@ public sealed class StepSequencerEvents : MonoBehaviour
         [Tooltip("Duration of this step in beats.")]
         public float durationBeats = 1f;
 
+        [Tooltip("Optional SineWaveGenerator to use for this step. If null, uses the default generator.")]
+        public SineWaveGenerator sineWaveGenerator;
+
         [Tooltip("UnityEvents that fire immediately when this step begins.")]
         public UnityEvent onStepStart = new();
 
@@ -443,6 +454,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
         public readonly string noteName;
         public readonly float frequencyHz;
         public readonly float durationBeats;
+        public readonly SineWaveGenerator generator;
 
         public RuntimeStep(
             SequenceStep source,
@@ -451,7 +463,8 @@ public sealed class StepSequencerEvents : MonoBehaviour
             bool useNoteName,
             string noteName,
             float frequencyHz,
-            float durationBeats)
+            float durationBeats,
+            SineWaveGenerator generator)
         {
             this.source = source;
             this.rest = rest;
@@ -460,11 +473,12 @@ public sealed class StepSequencerEvents : MonoBehaviour
             this.noteName = noteName;
             this.frequencyHz = frequencyHz;
             this.durationBeats = durationBeats;
+            this.generator = generator;
         }
 
         public RuntimeStep WithTieFromPrevious(bool tieFromPrevious)
         {
-            return new RuntimeStep(source, rest, tieFromPrevious, useNoteName, noteName, frequencyHz, durationBeats);
+            return new RuntimeStep(source, rest, tieFromPrevious, useNoteName, noteName, frequencyHz, durationBeats, generator);
         }
     }
 }
