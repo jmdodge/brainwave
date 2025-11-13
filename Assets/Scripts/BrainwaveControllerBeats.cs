@@ -6,6 +6,7 @@ using UnityEngine.Serialization;
 
 public class BrainwaveControllerBeats : MonoBehaviour
 {
+    [SerializeField] private bool fixedPosition;
     [SerializeField] private List<GameObject> rings = new();
 
     [SerializeField, Min(0f)]
@@ -42,6 +43,11 @@ public class BrainwaveControllerBeats : MonoBehaviour
         sequenceActive = false;
     }
 
+    void OnEnable()
+    {
+        CacheInitialScales();
+    }
+
     void OnDisable()
     {
         KillActiveTweens();
@@ -49,6 +55,7 @@ public class BrainwaveControllerBeats : MonoBehaviour
     
     public void SetPosition(Vector3 worldPosition)
     {
+        if(fixedPosition) return;
         Vector3 alignedPosition = new Vector3(worldPosition.x, worldPosition.y, transform.position.z);
         transform.position = alignedPosition;
     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using Sirenix.OdinInspector;
 
 [AddComponentMenu("Audio/Step Sequencer - Events")]
 public sealed class StepSequencerEvents : MonoBehaviour
@@ -15,6 +16,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
     [SerializeField] float standaloneBpm = 100f;
     [SerializeField] bool quantizeStart = true;
     [Min(0f)] [SerializeField] float startQuantizationBeats = 1f;
+    [TableList(ShowIndexLabels = true, AlwaysExpanded = true)]
     [SerializeField] List<SequenceStep> steps = new() { SequenceStep.Default() };
 
     readonly List<RuntimeStep> runtimeSteps = new();
@@ -433,9 +435,11 @@ public sealed class StepSequencerEvents : MonoBehaviour
         [Tooltip("Optional SineWaveGenerator to use for this step. If null, uses the default generator.")]
         public SineWaveGenerator sineWaveGenerator;
 
+        [HideInTables]
         [Tooltip("UnityEvents that fire immediately when this step begins.")]
         public UnityEvent onStepStart = new();
 
+        [HideInTables]
         [Tooltip("UnityEvents that fire when this step completes.")]
         public UnityEvent onStepEnd = new();
 
