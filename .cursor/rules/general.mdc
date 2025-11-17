@@ -13,3 +13,5 @@ if (Time.time - _lastTriggerTime < cooldownSeconds) return;
 Provide high level code commenting when creating new code to help the developer understand the basic flow.
 Add multiline/block comments (/** style) to all methods unless they are very trivial that explain the purpose of the function. 
 Add inline comments to natural stanzas of code so that there is a nice readable rhythm in comments that isn't too verbose but that generally covers all code flow.
+
+I'm using Odin Inspector and when it is sensible for important or complex components, I like to have manual controls to invoke script elements from the editor and create nicer organizations using Odin for elements and properties.

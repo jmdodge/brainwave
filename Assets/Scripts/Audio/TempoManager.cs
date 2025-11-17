@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Sirenix.OdinInspector;
 
 /**
  * Provides a global beat clock backed by Unity's DSP time so gameplay systems can stay phase-locked to music.
@@ -17,16 +18,79 @@ using UnityEngine;
  */
 public sealed class TempoManager : MonoBehaviour
 {
-    [Min(1f)]
-    [SerializeField] float bpm = 100f;
+    [TitleGroup("Tempo Settings", order: 0)] [Min(1f)] [OnValueChanged(nameof(OnBpmChanged))] [SerializeField]
+    float bpm = 100f;
 
-    [Tooltip("Time signature numerator (e.g. 4 in 4/4 time)")]
-    [Min(1)]
-    [SerializeField] int beatsPerBar = 4;
+    [TitleGroup("Tempo Settings")] [Tooltip("Time signature numerator (e.g. 4 in 4/4 time)")] [Min(1)] [SerializeField]
+    int beatsPerBar = 4;
 
+    [TitleGroup("Tempo Settings")]
     [Tooltip("Time signature denominator - which note gets the beat (4 = quarter note, 8 = eighth note)")]
     [Min(1)]
-    [SerializeField] int timeSignatureDenominator = 4;
+    [SerializeField]
+    int timeSignatureDenominator = 4;
+
+    [TitleGroup("Editor Controls", order: -1)]
+    [InfoBox(
+        "Use these buttons to control the transport during play mode. Changes to BPM will preserve the current beat phase.")]
+    [HorizontalGroup("Editor Controls/Transport")]
+    [Button(ButtonSizes.Medium), GUIColor(0.4f, 1f, 0.4f)]
+    [EnableIf("@!transportRunning")]
+    void StartTransportButton()
+    {
+        double dspStart = AudioSettings.dspTime + 0.1;
+        // Ensure BPM is set (this will preserve phase, but StartTransport will reset it)
+        if (secondsPerBeat <= double.Epsilon) SetTempo(bpm, dspStart);
+        StartTransport(dspStart);
+    }
+
+    [HorizontalGroup("Editor Controls/Transport")]
+    [Button(ButtonSizes.Medium), GUIColor(1f, 0.4f, 0.4f)]
+    [EnableIf("@transportRunning")]
+    void StopTransportButton() => StopTransport();
+
+    [TitleGroup("Editor Controls")]
+    [HorizontalGroup("Editor Controls/Test Scheduling")]
+    [Button(ButtonSizes.Small), GUIColor(0.4f, 0.8f, 1f)]
+    [EnableIf("@transportRunning")]
+    void TestSchedule4Beats() =>
+        ScheduleBeatsFromNow(4, () => Debug.Log("Scheduled event fired: 4 beats from now", this));
+
+    [HorizontalGroup("Editor Controls/Test Scheduling")]
+    [Button(ButtonSizes.Small), GUIColor(0.4f, 0.8f, 1f)]
+    [EnableIf("@transportRunning")]
+    void TestSchedule8Beats() =>
+        ScheduleBeatsFromNow(8, () => Debug.Log("Scheduled event fired: 8 beats from now", this));
+
+    [TitleGroup("Runtime State", order: 1)]
+    [ShowInInspector, ReadOnly, LabelText("Transport Status")]
+    [PropertyOrder(10)]
+    string TransportStatus => transportRunning ? "Running" : transportArmed ? "Armed" : "Stopped";
+
+    [TitleGroup("Runtime State")]
+    [ShowInInspector, ReadOnly, LabelText("Current Beat")]
+    [PropertyOrder(11)]
+    string CurrentBeatDisplay => transportRunning ? $"{CurrentBeat:F3}" : "N/A";
+
+    [TitleGroup("Runtime State")]
+    [ShowInInspector, ReadOnly, LabelText("Beat in Bar")]
+    [PropertyOrder(12)]
+    string CurrentBeatInBarDisplay => transportRunning ? $"{CurrentBeatInBar}" : "N/A";
+
+    [TitleGroup("Runtime State")]
+    [ShowInInspector, ReadOnly, LabelText("Current Bar")]
+    [PropertyOrder(13)]
+    string CurrentBarDisplay => transportRunning ? $"{CurrentBar}" : "N/A";
+
+    [TitleGroup("Runtime State")]
+    [ShowInInspector, ReadOnly, LabelText("Seconds Per Beat")]
+    [PropertyOrder(14)]
+    string SecondsPerBeatDisplay => $"{secondsPerBeat:F4}";
+
+    [TitleGroup("Runtime State")]
+    [ShowInInspector, ReadOnly, LabelText("Scheduled Events")]
+    [PropertyOrder(15)]
+    int ScheduledEventCount => scheduledEvents.Count;
 
     double secondsPerBeat;
     double beatZeroDspTime;
@@ -171,6 +235,7 @@ public sealed class TempoManager : MonoBehaviour
 
     /**
      * Arms the transport so beat dispatch begins exactly when the DSP timeline reaches the supplied timestamp.
+     * Resets the beat anchor so transport always starts at beat 0 (bar 1, beat 1).
      *
      * Example:
      * double dspStart = AudioSettings.dspTime + 0.05;
@@ -178,10 +243,18 @@ public sealed class TempoManager : MonoBehaviour
      */
     public void StartTransport(double startDspTime)
     {
+        // Reset beat zero to the transport start time so we always begin at beat 0
+        if (secondsPerBeat <= double.Epsilon)
+        {
+            secondsPerBeat = bpm > 0f ? 60.0 / bpm : 0d;
+        }
+
+        beatZeroDspTime = startDspTime;
+
         transportStartDspTime = startDspTime;
         transportArmed = true;
         transportRunning = false;
-        lastDispatchedBeat = (int)Math.Floor(GetBeatAtDsp(startDspTime)) - 1;
+        lastDispatchedBeat = -1; // Start from beat 0
     }
 
     /**
@@ -287,6 +360,17 @@ public sealed class TempoManager : MonoBehaviour
     {
         secondsPerBeat = bpm > 0f ? 60.0 / bpm : 0d;
         beatZeroDspTime = AudioSettings.dspTime;
+    }
+
+    /**
+     * Called when BPM is changed in the inspector to update tempo while preserving beat phase.
+     */
+    void OnBpmChanged()
+    {
+        if (Application.isPlaying)
+        {
+            SetTempo(bpm, AudioSettings.dspTime);
+        }
     }
 
     /**
