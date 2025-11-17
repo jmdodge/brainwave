@@ -20,8 +20,13 @@ public sealed class TempoManager : MonoBehaviour
     [Min(1f)]
     [SerializeField] float bpm = 100f;
 
+    [Tooltip("Time signature numerator (e.g. 4 in 4/4 time)")]
     [Min(1)]
     [SerializeField] int beatsPerBar = 4;
+
+    [Tooltip("Time signature denominator - which note gets the beat (4 = quarter note, 8 = eighth note)")]
+    [Min(1)]
+    [SerializeField] int timeSignatureDenominator = 4;
 
     double secondsPerBeat;
     double beatZeroDspTime;
@@ -64,6 +69,11 @@ public sealed class TempoManager : MonoBehaviour
     public int BeatsPerBar => beatsPerBar;
 
     /**
+     * Time signature denominator - which note gets the beat (4 = quarter note, 8 = eighth note).
+     */
+    public int TimeSignatureDenominator => timeSignatureDenominator;
+
+    /**
      * Length of a beat in seconds with the current BPM.
      */
     public double SecondsPerBeat => secondsPerBeat;
@@ -77,6 +87,35 @@ public sealed class TempoManager : MonoBehaviour
      * Current fractional beat index since beat zero.
      */
     public double CurrentBeat => GetBeatAtDsp(AudioSettings.dspTime);
+
+    /**
+     * Current beat within the bar (1-indexed, e.g. 1, 2, 3, 4 for 4/4 time).
+     * Returns 1 if transport is not running.
+     */
+    public int CurrentBeatInBar
+    {
+        get
+        {
+            if (!transportRunning) return 1;
+            int absoluteBeat = (int)Math.Floor(CurrentBeat);
+            int beatInBar = beatsPerBar > 0 ? Modulo(absoluteBeat, beatsPerBar) : 0;
+            return beatInBar + 1; // Convert to 1-indexed
+        }
+    }
+
+    /**
+     * Current bar number (1-indexed).
+     * Returns 1 if transport is not running.
+     */
+    public int CurrentBar
+    {
+        get
+        {
+            if (!transportRunning) return 1;
+            int absoluteBeat = (int)Math.Floor(CurrentBeat);
+            return (absoluteBeat / beatsPerBar) + 1;
+        }
+    }
 
     /**
      * Fired once per beat. First argument is the beat within the current bar; second is the absolute beat since transport start.
