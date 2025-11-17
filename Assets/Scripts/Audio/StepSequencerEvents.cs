@@ -7,6 +7,20 @@ using Sirenix.OdinInspector;
 [AddComponentMenu("Audio/Step Sequencer - Events")]
 public sealed class StepSequencerEvents : MonoBehaviour
 {
+    [TitleGroup("Editor Controls", order: -1)]
+    [HorizontalGroup("Editor Controls/Buttons")]
+    [Button(ButtonSizes.Medium), GUIColor(0.4f, 1f, 0.4f)]
+    void StartSequenceButton() => StartSequence();
+
+    [HorizontalGroup("Editor Controls/Buttons")]
+    [Button(ButtonSizes.Medium), GUIColor(1f, 0.4f, 0.4f)]
+    void StopSequenceButton() => StopSequence();
+
+    [HorizontalGroup("Editor Controls/Buttons")]
+    [Button(ButtonSizes.Medium), GUIColor(0.4f, 0.8f, 1f)]
+    void StartTransportButton() => StartTransportManually();
+
+    [TitleGroup("Settings", order: 0)]
     [SerializeField] TempoManager tempoManager;
     [SerializeField] SineWaveGenerator sineWaveGenerator;
     [SerializeField] bool triggerAudio = true;
@@ -16,6 +30,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
     [SerializeField] float standaloneBpm = 100f;
     [SerializeField] bool quantizeStart = true;
     [Min(0f)] [SerializeField] float startQuantizationBeats = 1f;
+    [TitleGroup("Steps", order: 1)]
     [TableList(ShowIndexLabels = true, AlwaysExpanded = true)]
     [SerializeField] List<SequenceStep> steps = new() { SequenceStep.Default() };
 
