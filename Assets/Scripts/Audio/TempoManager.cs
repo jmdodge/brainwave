@@ -187,6 +187,11 @@ public sealed class TempoManager : MonoBehaviour
     public event Action<int, int> OnBeat;
 
     /**
+     * Fired when the transport starts running.
+     */
+    public event Action OnTransportStarted;
+
+    /**
      * Initialises tempo state when the component loads.
      */
     void Awake()
@@ -205,6 +210,7 @@ public sealed class TempoManager : MonoBehaviour
         {
             transportRunning = true;
             lastDispatchedBeat = (int)Math.Floor(GetBeatAtDsp(transportStartDspTime)) - 1;
+            OnTransportStarted?.Invoke();
         }
 
         if (!transportRunning) return;

@@ -37,7 +37,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
 
     readonly List<RuntimeStep> runtimeSteps = new();
 
-    const double beatTolerance = 1e-4;
+    const double beatTolerance = 1e-4; // 0.0001 beats ≈ 0.06ms at 100 BPM, ≈ 0.025ms at 240 BPM
     const float minStepDurationBeats = 0.015625f;
     const float minFrequencyHz = 20f;
     const int maxRuntimeSteps = 64;
@@ -74,6 +74,11 @@ public sealed class StepSequencerEvents : MonoBehaviour
     {
         if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
         if (triggerAudio && sineWaveGenerator == null) sineWaveGenerator = GetComponent<SineWaveGenerator>();
+
+        if (tempoManager != null)
+        {
+            tempoManager.OnTransportStarted += OnTransportStarted;
+        }
     }
 
     void Start()
@@ -93,12 +98,6 @@ public sealed class StepSequencerEvents : MonoBehaviour
 
     void Update()
     {
-        if (waitingForTransport && tempoManager != null && tempoManager.TransportRunning)
-        {
-            waitingForTransport = false;
-            StartSequence();
-        }
-
         if (!isRunning || tempoManager == null || runtimeSteps.Count == 0) return;
 
         double currentBeat = tempoManager.CurrentBeat;
@@ -390,7 +389,36 @@ public sealed class StepSequencerEvents : MonoBehaviour
 
     void OnDisable()
     {
+        if (tempoManager != null)
+        {
+            tempoManager.OnTransportStarted -= OnTransportStarted;
+        }
         StopSequence();
+    }
+
+    void OnTransportStarted()
+    {
+        if (waitingForTransport)
+        {
+            waitingForTransport = false;
+
+            // When starting with transport, begin at beat 0 immediately
+            // The quantization logic is only for mid-song starts
+            if (tempoManager == null)
+            {
+                Debug.LogWarning("StepSequencerEvents cannot start because TempoManager is null.", this);
+                return;
+            }
+
+            PrepareRuntimeSteps();
+            if (runtimeSteps.Count == 0)
+            {
+                Debug.LogWarning("StepSequencerEvents has no valid steps to play.", this);
+                return;
+            }
+
+            BeginPlaybackAtBeat(0d);
+        }
     }
 
     void ScheduleOrStartImmediately()
@@ -411,8 +439,17 @@ public sealed class StepSequencerEvents : MonoBehaviour
 
         double quant = Math.Max(1e-6, startQuantizationBeats);
         double cycles = Math.Floor(currentBeat / quant);
+        double currentQuantizedBeat = cycles * quant;
+
+        // If we're already at (or very close to) a quantization boundary, start immediately
+        if (Math.Abs(currentBeat - currentQuantizedBeat) < beatTolerance)
+        {
+            BeginPlaybackAtBeat(currentQuantizedBeat);
+            return;
+        }
+
+        // Otherwise, wait for the next quantization boundary
         double targetBeat = (cycles + 1d) * quant;
-        if (targetBeat - currentBeat < beatTolerance) targetBeat += quant;
 
         startScheduled = true;
         scheduledStartBeat = targetBeat;
@@ -425,6 +462,9 @@ public sealed class StepSequencerEvents : MonoBehaviour
         BeginPlaybackAtBeat(scheduledStartBeat);
     }
 
+    /**
+     * Begins playback of the sequence at the specified beat.
+     */
     void BeginPlaybackAtBeat(double startBeat)
     {
         currentCycleStartBeat = startBeat;
