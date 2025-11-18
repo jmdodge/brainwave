@@ -1,44 +1,91 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
+using Sirenix.OdinInspector;
 
 [AddComponentMenu("Audio/Step Sequencer")]
 public sealed class StepSequencer : MonoBehaviour
 {
+    [TitleGroup("Editor Controls", order: -1)]
+    [HorizontalGroup("Editor Controls/Buttons")]
+    [Button(ButtonSizes.Medium), GUIColor(0.4f, 1f, 0.4f)]
+    void StartSequenceButton() => StartSequence();
+
+    [HorizontalGroup("Editor Controls/Buttons")]
+    [Button(ButtonSizes.Medium), GUIColor(1f, 0.4f, 0.4f)]
+    void StopSequenceButton() => StopSequence();
+
+    [HorizontalGroup("Editor Controls/Buttons")]
+    [Button(ButtonSizes.Medium), GUIColor(0.4f, 0.8f, 1f)]
+    void StartTransportButton() => StartTransportManually();
+
+    [TitleGroup("Settings", order: 0)]
     [SerializeField] TempoManager tempoManager;
     [SerializeField] SineWaveGenerator sineWaveGenerator;
+    [SerializeField] bool triggerAudio = true;
     [SerializeField] bool playOnStart = true;
     [SerializeField] bool loop = true;
     [SerializeField] bool canStartTransport;
     [SerializeField] bool waitForTransport;
     [SerializeField] float standaloneBpm = 100f;
     [SerializeField] bool quantizeStart = true;
-    [Min(0f)]
-    [SerializeField] float startQuantizationBeats = 1f;
+    [Min(0f)] [SerializeField] float startQuantizationBeats = 1f;
+    [TitleGroup("Steps", order: 1)]
+    [TableList(ShowIndexLabels = true, AlwaysExpanded = true)]
     [SerializeField] List<SequenceStep> steps = new() { SequenceStep.Default() };
 
-    readonly List<SequenceStep> runtimeSteps = new();
+    readonly List<RuntimeStep> runtimeSteps = new();
 
     const double beatTolerance = 1e-4; // 0.0001 beats ≈ 0.06ms at 100 BPM, ≈ 0.025ms at 240 BPM
-    const float minStepDurationBeats = 0.015625f; // 1/64 note
+    const float minStepDurationBeats = 0.015625f;
     const float minFrequencyHz = 20f;
+    const int maxRuntimeSteps = 64;
+    const string defaultNoteName = "A4";
+    const int lookaheadSteps = 16; // How many steps to schedule in advance (buffer size)
 
-    double currentCycleStartBeat;
-    double currentStepStartBeat;
-    double currentStepEndBeat;
-    double cycleLengthBeats;
-    int currentStepIndex;
-    bool isRunning;
-    bool noteActive;
-    bool startScheduled;
-    double scheduledStartBeat;
-    TempoManager.TempoEventHandle startHandle;
-    bool waitingForTransport;
+    // --- Playback State ---
+    bool isRunning; // True when sequence is actively playing
+    bool waitingForTransport; // True when waiting for transport to start before playing
+    bool noteActive; // True when a note is currently sounding (not a rest)
+    SineWaveGenerator activeGenerator; // The generator currently playing the note
+
+    // --- Scheduling State ---
+    // The "playhead" - which step in the sequence is currently playing
+    int currentPlayingStepIndex;
+
+    // How many steps we've scheduled ahead (absolute count, wraps for loops)
+    int totalStepsScheduled;
+
+    // Beat position where playback started (anchor point for calculating step timing)
+    double playbackStartBeat;
+
+    // List of scheduled event handles so we can cancel them if needed
+    readonly List<TempoManager.TempoEventHandle> scheduledEventHandles = new();
+
+    // --- Quantized Start State ---
+    bool startScheduled; // True when waiting for a quantized start time
+    double scheduledStartBeat; // The beat at which playback will begin
+    TempoManager.TempoEventHandle startHandle; // Handle for the quantized start event
+
+#if UNITY_EDITOR
+    /**
+     * Ensures newly added steps have their UnityEvents instantiated so the inspector displays them normally.
+     */
+    void OnValidate()
+    {
+        if (steps == null) return;
+        foreach (SequenceStep step in steps)
+        {
+            EnsureUnityEvents(step);
+        }
+    }
+#endif
 
     void OnEnable()
     {
         if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
-        if (sineWaveGenerator == null) sineWaveGenerator = GetComponent<SineWaveGenerator>();
+        if (triggerAudio && sineWaveGenerator == null) sineWaveGenerator = GetComponent<SineWaveGenerator>();
 
         if (tempoManager != null)
         {
@@ -61,14 +108,18 @@ public sealed class StepSequencer : MonoBehaviour
         }
     }
 
+    /**
+     * Maintains the lookahead buffer by scheduling steps in advance.
+     * This ensures frame-independent timing - even if Update() stutters, scheduled steps play on time.
+     */
     void Update()
     {
         if (!isRunning || tempoManager == null || runtimeSteps.Count == 0) return;
 
-        double currentBeat = tempoManager.CurrentBeat;
-        while (isRunning && currentBeat + beatTolerance >= currentStepEndBeat)
+        // Keep the buffer filled with upcoming steps
+        while (totalStepsScheduled < currentPlayingStepIndex + lookaheadSteps)
         {
-            CompleteCurrentStep();
+            ScheduleNextStep();
         }
     }
 
@@ -82,10 +133,14 @@ public sealed class StepSequencer : MonoBehaviour
             return;
         }
 
-        if (sineWaveGenerator == null)
+        if (triggerAudio && sineWaveGenerator == null)
         {
-            Debug.LogWarning("StepSequencer requires a SineWaveGenerator reference.", this);
-            return;
+            sineWaveGenerator = GetComponent<SineWaveGenerator>();
+            if (sineWaveGenerator == null)
+            {
+                Debug.LogWarning("StepSequencer is set to trigger audio but has no SineWaveGenerator reference.",
+                    this);
+            }
         }
 
         PrepareRuntimeSteps();
@@ -102,18 +157,32 @@ public sealed class StepSequencer : MonoBehaviour
 
     public void StopSequence()
     {
+        // Cancel any pending quantized start
         if (startScheduled && tempoManager != null)
         {
             tempoManager.CancelScheduledEvent(startHandle);
             startScheduled = false;
         }
 
+        // Cancel all scheduled steps in the lookahead buffer
+        foreach (var handle in scheduledEventHandles)
+        {
+            if (tempoManager != null)
+            {
+                tempoManager.CancelScheduledEvent(handle);
+            }
+        }
+        scheduledEventHandles.Clear();
+
         waitingForTransport = false;
         isRunning = false;
-        if (noteActive)
+
+        // Stop any currently playing note
+        if (noteActive && triggerAudio && activeGenerator != null)
         {
-            sineWaveGenerator.NoteOff();
+            activeGenerator.NoteOff();
             noteActive = false;
+            activeGenerator = null;
         }
     }
 
@@ -137,61 +206,113 @@ public sealed class StepSequencer : MonoBehaviour
         if (isRunning) StartSequence();
     }
 
-    void CompleteCurrentStep()
+    /**
+     * Schedules the next step in the sequence to be triggered at its precise beat time.
+     * This is called repeatedly by Update() to maintain the lookahead buffer.
+     */
+    void ScheduleNextStep()
     {
-        bool continueNote = ShouldContinueNote();
-        if (noteActive && !continueNote)
-        {
-            sineWaveGenerator.NoteOff();
-            noteActive = false;
-        }
+        if (runtimeSteps.Count == 0) return;
 
-        double nextStepStart = currentStepEndBeat;
-        if (!AdvanceStepIndex())
+        // Calculate which step in the sequence to schedule (wraps for loops)
+        int stepIndexInSequence = totalStepsScheduled % runtimeSteps.Count;
+        RuntimeStep step = runtimeSteps[stepIndexInSequence];
+
+        // Calculate when this step should trigger (in beats from start)
+        double stepStartBeat = CalculateStepStartBeat(totalStepsScheduled);
+
+        // Schedule the step to trigger at the calculated beat
+        var handle = tempoManager.ScheduleAtBeat(stepStartBeat, () =>
         {
-            isRunning = false;
+            OnStepTriggered(stepIndexInSequence);
+        });
+
+        scheduledEventHandles.Add(handle);
+        totalStepsScheduled++;
+
+        // If this is the last step and we're not looping, stop scheduling
+        if (!loop && totalStepsScheduled >= runtimeSteps.Count)
+        {
+            // The final step's callback will set isRunning = false
             return;
         }
-
-        currentStepStartBeat = currentStepIndex == 0 ? currentCycleStartBeat : nextStepStart;
-        StartCurrentStep();
     }
 
-    void StartCurrentStep()
+    /**
+     * Calculates the beat time when a step should start, based on how many steps have played.
+     * @param absoluteStepIndex - The total number of steps that have been scheduled (may be > sequence length for loops)
+     */
+    double CalculateStepStartBeat(int absoluteStepIndex)
+    {
+        double beatOffset = 0;
+
+        // Sum up the duration of all previous steps
+        for (int i = 0; i < absoluteStepIndex; i++)
+        {
+            int stepIndex = i % runtimeSteps.Count;
+            beatOffset += Math.Max(minStepDurationBeats, runtimeSteps[stepIndex].durationBeats);
+        }
+
+        return playbackStartBeat + beatOffset;
+    }
+
+    /**
+     * Called when a scheduled step's beat time arrives (DSP callback).
+     * Triggers the note on/off, fires UnityEvents, and advances the playhead.
+     */
+    void OnStepTriggered(int stepIndexInSequence)
     {
         if (!isRunning || runtimeSteps.Count == 0) return;
 
-        SequenceStep step = runtimeSteps[currentStepIndex];
-        bool tiesFromPrevious = StepTiesFromPrevious(currentStepIndex);
+        RuntimeStep step = runtimeSteps[stepIndexInSequence];
+        bool tiesFromPrevious = StepTiesFromPrevious(stepIndexInSequence);
 
+        // Handle note state transitions
         if (step.rest)
         {
-            if (noteActive)
+            // Rest: Stop any playing note
+            if (noteActive && triggerAudio && activeGenerator != null)
             {
-                sineWaveGenerator.NoteOff();
+                activeGenerator.NoteOff();
                 noteActive = false;
+                activeGenerator = null;
             }
         }
-        else if (!tiesFromPrevious)
+        else if (!tiesFromPrevious && triggerAudio && step.generator != null)
         {
+            // New note: Apply pitch and trigger
             ApplyStepPitch(step);
-            sineWaveGenerator.NoteOn();
+            step.generator.NoteOn();
             noteActive = true;
+            activeGenerator = step.generator;
         }
+        // else: tied note continues playing (no action needed)
 
-        currentStepEndBeat = currentStepStartBeat + Math.Max(minStepDurationBeats, step.durationBeats);
-    }
+        // Fire UnityEvents
+        InvokeStepStartEvent(step);
 
-    void CompleteCycleIfNeeded()
-    {
-        if (runtimeSteps.Count == 0) return;
-        cycleLengthBeats = 0.0;
-        for (int i = 0; i < runtimeSteps.Count; i++)
+        // Advance the playhead
+        currentPlayingStepIndex++;
+
+        // Check if we've reached the end of a non-looping sequence
+        if (!loop && currentPlayingStepIndex >= runtimeSteps.Count)
         {
-            cycleLengthBeats += Math.Max(minStepDurationBeats, runtimeSteps[i].durationBeats);
+            isRunning = false;
+            if (noteActive && triggerAudio && activeGenerator != null)
+            {
+                activeGenerator.NoteOff();
+                noteActive = false;
+                activeGenerator = null;
+            }
         }
-        cycleLengthBeats = Math.Max(minStepDurationBeats, cycleLengthBeats);
+
+        // Remove this event handle from our tracking list (it's already fired)
+        if (scheduledEventHandles.Count > 0)
+        {
+            scheduledEventHandles.RemoveAt(0);
+        }
     }
+
 
     void PrepareRuntimeSteps()
     {
@@ -200,89 +321,72 @@ public sealed class StepSequencer : MonoBehaviour
 
         foreach (SequenceStep step in steps)
         {
-            if (runtimeSteps.Count >= 64) break;
+            if (runtimeSteps.Count >= maxRuntimeSteps) break;
+            if (step == null) continue;
 
-            SequenceStep sanitized = step;
-            sanitized.durationBeats = Math.Max(minStepDurationBeats, sanitized.durationBeats);
-            sanitized.frequencyHz = Math.Max(minFrequencyHz, sanitized.frequencyHz);
-            if (sanitized.rest) sanitized.tieFromPrevious = false;
-            runtimeSteps.Add(sanitized);
+            float sanitizedDuration = Mathf.Max(minStepDurationBeats, step.durationBeats);
+            float sanitizedFrequency = Mathf.Max(minFrequencyHz, step.frequencyHz);
+            bool sanitizedTie = !step.rest && step.tieFromPrevious;
+            bool sanitizedUseNoteName = step.useNoteName;
+            string sanitizedNoteName = string.IsNullOrWhiteSpace(step.noteName) ? defaultNoteName : step.noteName;
+            SineWaveGenerator resolvedGenerator = step.sineWaveGenerator != null ? step.sineWaveGenerator : sineWaveGenerator;
+
+            runtimeSteps.Add(new RuntimeStep(
+                step,
+                step.rest,
+                sanitizedTie,
+                sanitizedUseNoteName,
+                sanitizedNoteName,
+                sanitizedFrequency,
+                sanitizedDuration,
+                resolvedGenerator));
+
+            EnsureUnityEvents(step);
         }
 
         if (runtimeSteps.Count == 0) return;
 
         if (!loop)
         {
-            SequenceStep first = runtimeSteps[0];
+            RuntimeStep first = runtimeSteps[0];
             if (first.tieFromPrevious)
             {
-                first.tieFromPrevious = false;
-                runtimeSteps[0] = first;
+                runtimeSteps[0] = first.WithTieFromPrevious(false);
             }
         }
 
         for (int i = 0; i < runtimeSteps.Count; i++)
         {
-            if (!runtimeSteps[i].tieFromPrevious) continue;
+            RuntimeStep current = runtimeSteps[i];
+            if (!current.tieFromPrevious) continue;
 
             int prevIndex = i == 0 ? runtimeSteps.Count - 1 : i - 1;
             if (i == 0 && !loop)
             {
-                SequenceStep step = runtimeSteps[i];
-                step.tieFromPrevious = false;
-                runtimeSteps[i] = step;
+                runtimeSteps[i] = current.WithTieFromPrevious(false);
                 continue;
             }
 
             if (runtimeSteps[prevIndex].rest)
             {
-                SequenceStep step = runtimeSteps[i];
-                step.tieFromPrevious = false;
-                runtimeSteps[i] = step;
+                runtimeSteps[i] = current.WithTieFromPrevious(false);
             }
         }
-
-        CompleteCycleIfNeeded();
     }
 
-    bool AdvanceStepIndex()
+    static void EnsureUnityEvents(SequenceStep step)
     {
-        if (runtimeSteps.Count == 0) return false;
-
-        if (currentStepIndex + 1 >= runtimeSteps.Count)
-        {
-            if (!loop) return false;
-
-            currentStepIndex = 0;
-            currentCycleStartBeat += cycleLengthBeats;
-            return true;
-        }
-
-        currentStepIndex++;
-        return true;
+        if (step == null) return;
+        step.onStepStart ??= new UnityEvent();
+        step.onStepEnd ??= new UnityEvent();
     }
 
-    bool ShouldContinueNote()
-    {
-        if (!noteActive || runtimeSteps.Count == 0) return false;
-
-        int nextIndex = currentStepIndex + 1;
-        if (nextIndex >= runtimeSteps.Count)
-        {
-            if (!loop) return false;
-            nextIndex = 0;
-        }
-
-        SequenceStep nextStep = runtimeSteps[nextIndex];
-        if (nextStep.rest) return false;
-        return StepTiesFromPrevious(nextIndex);
-    }
 
     bool StepTiesFromPrevious(int stepIndex)
     {
         if (runtimeSteps.Count == 0) return false;
 
-        SequenceStep step = runtimeSteps[stepIndex];
+        RuntimeStep step = runtimeSteps[stepIndex];
         if (!step.tieFromPrevious) return false;
 
         if (stepIndex == 0)
@@ -294,16 +398,16 @@ public sealed class StepSequencer : MonoBehaviour
         return !runtimeSteps[stepIndex - 1].rest;
     }
 
-    void ApplyStepPitch(SequenceStep step)
+    void ApplyStepPitch(RuntimeStep step)
     {
-        if (sineWaveGenerator == null) return;
+        if (!triggerAudio || step.generator == null) return;
         if (step.useNoteName)
         {
-            sineWaveGenerator.SetNoteName(step.noteName);
+            step.generator.SetNoteName(step.noteName);
         }
         else
         {
-            sineWaveGenerator.SetFrequency(Mathf.Max(minFrequencyHz, step.frequencyHz));
+            step.generator.SetFrequency(step.frequencyHz);
         }
     }
 
@@ -334,9 +438,9 @@ public sealed class StepSequencer : MonoBehaviour
 
             // When starting with transport, begin at beat 0 immediately
             // The quantization logic is only for mid-song starts
-            if (tempoManager == null || sineWaveGenerator == null)
+            if (tempoManager == null)
             {
-                Debug.LogWarning("StepSequencer cannot start because required references are missing.", this);
+                Debug.LogWarning("StepSequencer cannot start because TempoManager is null.", this);
                 return;
             }
 
@@ -392,18 +496,39 @@ public sealed class StepSequencer : MonoBehaviour
         BeginPlaybackAtBeat(scheduledStartBeat);
     }
 
+    /**
+     * Begins playback at the specified beat position.
+     * Initializes scheduling state and starts filling the lookahead buffer.
+     */
     void BeginPlaybackAtBeat(double startBeat)
     {
-        currentCycleStartBeat = startBeat;
-        currentStepIndex = 0;
-        currentStepStartBeat = startBeat;
+        playbackStartBeat = startBeat;
+        currentPlayingStepIndex = 0;
+        totalStepsScheduled = 0;
         isRunning = true;
         noteActive = false;
-        StartCurrentStep();
+        activeGenerator = null;
+
+        // Clear any leftover scheduled events
+        scheduledEventHandles.Clear();
+
+        // Update() will immediately start filling the lookahead buffer
+    }
+
+    void InvokeStepStartEvent(RuntimeStep step)
+    {
+        if (step.source == null) return;
+        step.source.onStepStart?.Invoke();
+    }
+
+    void InvokeStepEndEvent(RuntimeStep step)
+    {
+        if (step.source == null) return;
+        step.source.onStepEnd?.Invoke();
     }
 
     [Serializable]
-    public struct SequenceStep
+    public sealed class SequenceStep
     {
         [Tooltip("Marks this step as a rest; no note is triggered.")]
         public bool rest;
@@ -412,28 +537,69 @@ public sealed class StepSequencer : MonoBehaviour
         public bool tieFromPrevious;
 
         [Tooltip("Use scientific pitch notation (e.g. C4). When false, frequencyHz is used.")]
-        public bool useNoteName;
+        public bool useNoteName = true;
 
         [Tooltip("Scientific pitch notation for this step.")]
-        public string noteName;
+        public string noteName = defaultNoteName;
 
         [Tooltip("Raw frequency in hertz for this step when not using note names.")]
-        public float frequencyHz;
+        public float frequencyHz = 440f;
 
         [Tooltip("Duration of this step in beats.")]
-        public float durationBeats;
+        public float durationBeats = 1f;
+
+        [Tooltip("Optional SineWaveGenerator to use for this step. If null, uses the default generator.")]
+        public SineWaveGenerator sineWaveGenerator;
+
+        [HideInTables]
+        [Tooltip("UnityEvents that fire immediately when this step begins.")]
+        public UnityEvent onStepStart = new();
+
+        [HideInTables]
+        [Tooltip("UnityEvents that fire when this step completes.")]
+        public UnityEvent onStepEnd = new();
 
         public static SequenceStep Default()
         {
-            return new SequenceStep
-            {
-                rest = false,
-                tieFromPrevious = false,
-                useNoteName = true,
-                noteName = "A4",
-                frequencyHz = 440f,
-                durationBeats = 1f
-            };
+            return new SequenceStep();
+        }
+    }
+
+    readonly struct RuntimeStep
+    {
+        public readonly SequenceStep source;
+        public readonly bool rest;
+        public readonly bool tieFromPrevious;
+        public readonly bool useNoteName;
+        public readonly string noteName;
+        public readonly float frequencyHz;
+        public readonly float durationBeats;
+        public readonly SineWaveGenerator generator;
+
+        public RuntimeStep(
+            SequenceStep source,
+            bool rest,
+            bool tieFromPrevious,
+            bool useNoteName,
+            string noteName,
+            float frequencyHz,
+            float durationBeats,
+            SineWaveGenerator generator)
+        {
+            this.source = source;
+            this.rest = rest;
+            this.tieFromPrevious = tieFromPrevious;
+            this.useNoteName = useNoteName;
+            this.noteName = noteName;
+            this.frequencyHz = frequencyHz;
+            this.durationBeats = durationBeats;
+            this.generator = generator;
+        }
+
+        public RuntimeStep WithTieFromPrevious(bool tieFromPrevious)
+        {
+            return new RuntimeStep(source, rest, tieFromPrevious, useNoteName, noteName, frequencyHz, durationBeats, generator);
         }
     }
 }
+
