@@ -1,0 +1,264 @@
+using System;
+using System.Threading;
+using UnityEngine;
+
+/// <summary>
+/// Base class for drum synthesizers providing common audio synthesis infrastructure.
+/// Derived classes implement specific drum sound generation.
+/// </summary>
+[RequireComponent(typeof(AudioSource))]
+public abstract class BaseDrumSynth : MonoBehaviour
+{
+    [Header("Basic Controls")]
+    [Range(0f, 1f)]
+    [Tooltip("Master volume for this drum sound")]
+    public float amplitude = 0.5f;
+
+    [Header("Advanced Envelope Override")]
+    [Min(0f)]
+    [Tooltip("Attack time in seconds (overrides simple controls if changed)")]
+    public float attack = 0.001f;
+
+    [Min(0f)]
+    [Tooltip("Decay/Release time in seconds (overrides simple controls if changed)")]
+    public float decay = 0.2f;
+
+    [Header("Output")]
+    [Tooltip("Apply simple low-pass filtering")]
+    public bool useFilter = false;
+
+    [Range(100f, 20000f)]
+    public float filterCutoff = 8000f;
+
+    [Range(0.1f, 10f)]
+    public float filterResonance = 0.707f;
+
+    // Audio thread state
+    protected double sampleRate;
+    protected const double tau = 2.0 * Math.PI;
+
+    // Trigger mechanism (thread-safe)
+    private int triggerPending;
+    private volatile bool isPlaying;
+    private double envelopePhase; // 0 to 1 representing position in envelope
+    private double envelopeValue; // Current envelope amplitude 0 to 1
+
+    // Filter state
+    private double cachedCutoff = -1.0;
+    private double cachedResonance = -1.0;
+    private double b0, b1, b2, a1, a2;
+    private double z1, z2;
+
+    protected virtual void Awake()
+    {
+        sampleRate = AudioSettings.outputSampleRate;
+        isPlaying = false;
+        envelopePhase = 0.0;
+        envelopeValue = 0.0;
+
+        if (useFilter)
+        {
+            UpdateFilterCoefficients(sampleRate, filterCutoff, filterResonance);
+        }
+
+        OnDrumAwake();
+    }
+
+    protected virtual void OnDisable()
+    {
+        isPlaying = false;
+        triggerPending = 0;
+        envelopePhase = 0.0;
+        envelopeValue = 0.0;
+        z1 = z2 = 0.0;
+
+        OnDrumDisable();
+    }
+
+    /// <summary>
+    /// Triggers a one-shot drum hit. Thread-safe, can be called from any thread.
+    /// </summary>
+    public void TriggerOneShot()
+    {
+        if (!isActiveAndEnabled)
+            return;
+
+        Interlocked.Increment(ref triggerPending);
+    }
+
+    /// <summary>
+    /// Sets the amplitude/volume for this drum.
+    /// </summary>
+    public void SetAmplitude(float value)
+    {
+        amplitude = Mathf.Clamp01(value);
+    }
+
+    private void OnAudioFilterRead(float[] data, int channels)
+    {
+        if (sampleRate <= 0.0)
+            sampleRate = AudioSettings.outputSampleRate;
+
+        // Update filter coefficients if changed
+        if (useFilter && (!Mathf.Approximately((float)cachedCutoff, filterCutoff) ||
+                          !Mathf.Approximately((float)cachedResonance, filterResonance)))
+        {
+            UpdateFilterCoefficients(sampleRate, filterCutoff, filterResonance);
+        }
+
+        // Check for new triggers
+        if (Interlocked.Exchange(ref triggerPending, 0) > 0)
+        {
+            isPlaying = true;
+            envelopePhase = 0.0;
+            envelopeValue = 0.0;
+            OnTrigger();
+        }
+
+        double deltaTime = 1.0 / sampleRate;
+
+        for (int i = 0; i < data.Length; i += channels)
+        {
+            double rawSample = 0.0;
+
+            if (isPlaying)
+            {
+                // Update envelope
+                UpdateEnvelope(deltaTime);
+
+                // Generate drum-specific sample
+                rawSample = GenerateDrumSample() * amplitude * envelopeValue;
+
+                // Advance envelope phase
+                envelopePhase += deltaTime;
+
+                // Check if envelope is complete
+                if (envelopeValue <= 0.00001 && envelopePhase > attack)
+                {
+                    isPlaying = false;
+                    envelopeValue = 0.0;
+                }
+            }
+
+            // Apply filter if enabled
+            double processedSample = useFilter ? ProcessFilter(rawSample) : rawSample;
+            float sampleValue = (float)processedSample;
+
+            for (int ch = 0; ch < channels; ch++)
+                data[i + ch] = sampleValue;
+        }
+    }
+
+    /// <summary>
+    /// Updates the envelope value based on attack and decay times.
+    /// </summary>
+    private void UpdateEnvelope(double deltaTime)
+    {
+        double safeAttack = Math.Max(attack, 0.0001);
+        double safeDecay = Math.Max(decay, 0.0001);
+
+        if (envelopePhase < safeAttack)
+        {
+            // Attack phase: 0 -> 1
+            envelopeValue = envelopePhase / safeAttack;
+        }
+        else
+        {
+            // Decay phase: 1 -> 0
+            double decayPhase = envelopePhase - safeAttack;
+            envelopeValue = Math.Max(0.0, 1.0 - (decayPhase / safeDecay));
+        }
+
+        // Allow derived classes to modify envelope
+        envelopeValue = ModifyEnvelope(envelopeValue, envelopePhase);
+    }
+
+    /// <summary>
+    /// Updates the low-pass filter coefficients using the biquad formula.
+    /// </summary>
+    private void UpdateFilterCoefficients(double currentSampleRate, float cutoffHz, float resonanceQ)
+    {
+        double nyquist = currentSampleRate * 0.5;
+        double clampedCutoff = Math.Max(10.0, Math.Min(cutoffHz, nyquist - 10.0));
+        double clampedResonance = Math.Max(0.1, resonanceQ);
+
+        double omega = 2.0 * Math.PI * clampedCutoff / currentSampleRate;
+        double sin = Math.Sin(omega);
+        double cos = Math.Cos(omega);
+        double alpha = sin / (2.0 * clampedResonance);
+
+        double invA0 = 1.0 / (1.0 + alpha);
+        b0 = ((1.0 - cos) * 0.5) * invA0;
+        b1 = (1.0 - cos) * invA0;
+        b2 = b0;
+        a1 = (-2.0 * cos) * invA0;
+        a2 = (1.0 - alpha) * invA0;
+
+        cachedCutoff = cutoffHz;
+        cachedResonance = resonanceQ;
+    }
+
+    /// <summary>
+    /// Applies the low-pass filter to the input sample.
+    /// </summary>
+    private double ProcessFilter(double input)
+    {
+        double output = b0 * input + z1;
+        z1 = b1 * input + z2 - a1 * output;
+        z2 = b2 * input - a2 * output;
+        return output;
+    }
+
+    // ===== Abstract and Virtual Methods for Derived Classes =====
+
+    /// <summary>
+    /// Called during Awake for drum-specific initialization.
+    /// </summary>
+    protected virtual void OnDrumAwake() { }
+
+    /// <summary>
+    /// Called during OnDisable for drum-specific cleanup.
+    /// </summary>
+    protected virtual void OnDrumDisable() { }
+
+    /// <summary>
+    /// Called when a trigger occurs. Use this to reset oscillator phases, etc.
+    /// </summary>
+    protected virtual void OnTrigger() { }
+
+    /// <summary>
+    /// Generate a single sample for this drum sound.
+    /// Called once per audio sample when the drum is playing.
+    /// Envelope is applied automatically after this.
+    /// </summary>
+    /// <returns>Sample value (typically -1 to 1)</returns>
+    protected abstract double GenerateDrumSample();
+
+    /// <summary>
+    /// Allows derived classes to modify the envelope curve.
+    /// </summary>
+    /// <param name="envelopeValue">Current envelope value (0 to 1)</param>
+    /// <param name="phase">Current time since trigger in seconds</param>
+    /// <returns>Modified envelope value</returns>
+    protected virtual double ModifyEnvelope(double envelopeValue, double phase)
+    {
+        return envelopeValue;
+    }
+
+    // ===== Helper Properties =====
+
+    /// <summary>
+    /// Returns true if the drum is currently playing.
+    /// </summary>
+    public bool IsPlaying => isPlaying;
+
+    /// <summary>
+    /// Returns the current envelope phase in seconds since trigger.
+    /// </summary>
+    protected double EnvelopePhase => envelopePhase;
+
+    /// <summary>
+    /// Returns the current envelope value (0 to 1).
+    /// </summary>
+    protected double EnvelopeValue => envelopeValue;
+}
