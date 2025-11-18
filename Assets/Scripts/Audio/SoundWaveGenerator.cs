@@ -3,7 +3,7 @@ using System.Threading;
 using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
-public class SineWaveGenerator : MonoBehaviour
+public class SoundWaveGenerator : MonoBehaviour
 {
     public enum Waveform
     {

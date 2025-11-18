@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using Sirenix.OdinInspector;
+using UnityEngine.Serialization;
 
 [AddComponentMenu("Audio/Step Sequencer")]
 public sealed class StepSequencer : MonoBehaviour
@@ -22,7 +23,7 @@ public sealed class StepSequencer : MonoBehaviour
 
     [TitleGroup("Settings", order: 0)]
     [SerializeField] TempoManager tempoManager;
-    [SerializeField] SineWaveGenerator sineWaveGenerator;
+    [FormerlySerializedAs("sineWaveGenerator")] [SerializeField] SoundWaveGenerator soundWaveGenerator;
     [SerializeField] bool triggerAudio = true;
     [SerializeField] bool playOnStart = true;
     [SerializeField] bool loop = true;
@@ -48,7 +49,7 @@ public sealed class StepSequencer : MonoBehaviour
     bool isRunning; // True when sequence is actively playing
     bool waitingForTransport; // True when waiting for transport to start before playing
     bool noteActive; // True when a note is currently sounding (not a rest)
-    SineWaveGenerator activeGenerator; // The generator currently playing the note
+    SoundWaveGenerator activeGenerator; // The generator currently playing the note
 
     // --- Scheduling State ---
     // The "playhead" - which step in the sequence is currently playing
@@ -85,7 +86,7 @@ public sealed class StepSequencer : MonoBehaviour
     void OnEnable()
     {
         if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
-        if (triggerAudio && sineWaveGenerator == null) sineWaveGenerator = GetComponent<SineWaveGenerator>();
+        if (triggerAudio && soundWaveGenerator == null) soundWaveGenerator = GetComponent<SoundWaveGenerator>();
 
         if (tempoManager != null)
         {
@@ -133,10 +134,10 @@ public sealed class StepSequencer : MonoBehaviour
             return;
         }
 
-        if (triggerAudio && sineWaveGenerator == null)
+        if (triggerAudio && soundWaveGenerator == null)
         {
-            sineWaveGenerator = GetComponent<SineWaveGenerator>();
-            if (sineWaveGenerator == null)
+            soundWaveGenerator = GetComponent<SoundWaveGenerator>();
+            if (soundWaveGenerator == null)
             {
                 Debug.LogWarning("StepSequencer is set to trigger audio but has no SineWaveGenerator reference.",
                     this);
@@ -329,7 +330,7 @@ public sealed class StepSequencer : MonoBehaviour
             bool sanitizedTie = !step.rest && step.tieFromPrevious;
             bool sanitizedUseNoteName = step.useNoteName;
             string sanitizedNoteName = string.IsNullOrWhiteSpace(step.noteName) ? defaultNoteName : step.noteName;
-            SineWaveGenerator resolvedGenerator = step.sineWaveGenerator != null ? step.sineWaveGenerator : sineWaveGenerator;
+            SoundWaveGenerator resolvedGenerator = step.soundWaveGenerator != null ? step.soundWaveGenerator : soundWaveGenerator;
 
             runtimeSteps.Add(new RuntimeStep(
                 step,
@@ -548,8 +549,8 @@ public sealed class StepSequencer : MonoBehaviour
         [Tooltip("Duration of this step in beats.")]
         public float durationBeats = 1f;
 
-        [Tooltip("Optional SineWaveGenerator to use for this step. If null, uses the default generator.")]
-        public SineWaveGenerator sineWaveGenerator;
+        [FormerlySerializedAs("sineWaveGenerator")] [Tooltip("Optional SineWaveGenerator to use for this step. If null, uses the default generator.")]
+        public SoundWaveGenerator soundWaveGenerator;
 
         [HideInTables]
         [Tooltip("UnityEvents that fire immediately when this step begins.")]
@@ -574,7 +575,7 @@ public sealed class StepSequencer : MonoBehaviour
         public readonly string noteName;
         public readonly float frequencyHz;
         public readonly float durationBeats;
-        public readonly SineWaveGenerator generator;
+        public readonly SoundWaveGenerator generator;
 
         public RuntimeStep(
             SequenceStep source,
@@ -584,7 +585,7 @@ public sealed class StepSequencer : MonoBehaviour
             string noteName,
             float frequencyHz,
             float durationBeats,
-            SineWaveGenerator generator)
+            SoundWaveGenerator generator)
         {
             this.source = source;
             this.rest = rest;

@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(SineWaveGenerator))]
+[CustomEditor(typeof(SoundWaveGenerator))]
 public class SineWaveGeneratorEditor : Editor
 {
     public override void OnInspectorGUI()
@@ -14,7 +14,7 @@ public class SineWaveGeneratorEditor : Editor
         Editor.DrawPropertiesExcluding(serializedObject, "m_Script");
         serializedObject.ApplyModifiedProperties();
 
-        var generator = target as SineWaveGenerator;
+        var generator = target as SoundWaveGenerator;
         if (generator == null)
             return;
 
