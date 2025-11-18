@@ -7511,7 +7511,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::StepSequencerEvents
-  mode: 2
+  mode: 1
   tempoManager: {fileID: 0}
   soundWaveGenerator: {fileID: 1431861830}
   triggerAudio: 1
@@ -7548,6 +7548,22 @@ MonoBehaviour:
             m_StringArgument: 
             m_BoolArgument: 0
           m_CallState: 2
+    onStepEnd:
+      m_PersistentCalls:
+        m_Calls: []
+  - rest: 0
+    tieFromPrevious: 0
+    durationBeats: 1
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A4
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
+    onStepStart:
+      m_PersistentCalls:
+        m_Calls: []
     onStepEnd:
       m_PersistentCalls:
         m_Calls: []
