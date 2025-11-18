@@ -7,7 +7,7 @@ using UnityEngine;
 /// Derived classes implement specific drum sound generation.
 /// </summary>
 [RequireComponent(typeof(AudioSource))]
-public abstract class BaseDrumSynth : MonoBehaviour
+public abstract class BaseDrumSynth : MonoBehaviour, ISoundGenerator
 {
     [Header("Basic Controls")]
     [Range(0f, 1f)]
@@ -93,6 +93,73 @@ public abstract class BaseDrumSynth : MonoBehaviour
     {
         amplitude = Mathf.Clamp01(value);
     }
+
+    // --- ISoundGenerator Interface Implementation ---
+
+    /// <summary>
+    /// ISoundGenerator: Sets pitch by frequency. Drums can override to implement pitch control.
+    /// Default implementation does nothing (drums are typically unpitched).
+    /// </summary>
+    public virtual void SetPitch(float frequencyHz)
+    {
+        // Override in derived classes for pitched drums (e.g., 808 kick with tunable pitch)
+        OnPitchChanged(frequencyHz);
+    }
+
+    /// <summary>
+    /// ISoundGenerator: Sets pitch by note name. Converts to frequency and calls SetPitch.
+    /// </summary>
+    public void SetPitchByName(string noteName)
+    {
+        if (TryParseNote(noteName, out float frequency))
+        {
+            SetPitch(frequency);
+        }
+    }
+
+    /// <summary>
+    /// ISoundGenerator: Sets pitch offset in semitones. Drums can override for tuning.
+    /// Default implementation does nothing.
+    /// </summary>
+    public virtual void SetPitchOffset(float semitones)
+    {
+        // Override in derived classes for pitch-bendable drums
+    }
+
+    /// <summary>
+    /// ISoundGenerator: Sets velocity (MIDI 0-127). Converts to amplitude.
+    /// </summary>
+    public void SetVelocity(int velocity)
+    {
+        // Convert MIDI velocity to amplitude (linear for drums - they handle dynamics differently)
+        amplitude = Mathf.Clamp01(velocity / 127f);
+    }
+
+    /// <summary>
+    /// ISoundGenerator: Triggers the drum (note on).
+    /// </summary>
+    public void NoteOn()
+    {
+        TriggerOneShot();
+    }
+
+    /// <summary>
+    /// ISoundGenerator: Release note (note off). Drums ignore this - they're one-shots.
+    /// </summary>
+    public void NoteOff()
+    {
+        // Drums are one-shots, no action needed
+    }
+
+    /// <summary>
+    /// Called when pitch is changed. Override to implement pitch-sensitive drums.
+    /// </summary>
+    protected virtual void OnPitchChanged(float frequencyHz)
+    {
+        // Override in derived classes to handle pitch
+    }
+
+    // --- End ISoundGenerator Interface ---
 
     private void OnAudioFilterRead(float[] data, int channels)
     {
@@ -261,4 +328,75 @@ public abstract class BaseDrumSynth : MonoBehaviour
     /// Returns the current envelope value (0 to 1).
     /// </summary>
     protected double EnvelopeValue => envelopeValue;
+
+    // ===== Helper Methods =====
+
+    /// <summary>
+    /// Parses scientific pitch notation (e.g., "A4", "C#3") to frequency in Hz.
+    /// </summary>
+    /// <param name="input">Note name string</param>
+    /// <param name="frequencyOut">Output frequency in Hz</param>
+    /// <returns>True if parsing succeeded</returns>
+    protected static bool TryParseNote(string input, out float frequencyOut)
+    {
+        frequencyOut = 0f;
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+
+        string trimmed = input.Trim();
+        if (trimmed.Length < 2)
+            return false;
+
+        char letter = char.ToUpperInvariant(trimmed[0]);
+        int semitoneFromC;
+        switch (letter)
+        {
+            case 'C': semitoneFromC = 0; break;
+            case 'D': semitoneFromC = 2; break;
+            case 'E': semitoneFromC = 4; break;
+            case 'F': semitoneFromC = 5; break;
+            case 'G': semitoneFromC = 7; break;
+            case 'A': semitoneFromC = 9; break;
+            case 'B': semitoneFromC = 11; break;
+            default: return false;
+        }
+
+        int index = 1;
+        if (index < trimmed.Length)
+        {
+            char accidental = trimmed[index];
+            if (accidental == '#')
+            {
+                semitoneFromC += 1;
+                index++;
+            }
+            else if (accidental == 'b' || accidental == 'B')
+            {
+                semitoneFromC -= 1;
+                index++;
+            }
+        }
+
+        if (index >= trimmed.Length)
+            return false;
+
+        if (!int.TryParse(trimmed.Substring(index), out int octave))
+            return false;
+
+        while (semitoneFromC < 0)
+        {
+            semitoneFromC += 12;
+            octave -= 1;
+        }
+        while (semitoneFromC >= 12)
+        {
+            semitoneFromC -= 12;
+            octave += 1;
+        }
+
+        int midiNote = (octave + 1) * 12 + semitoneFromC;
+        double exponent = (midiNote - 69) / 12.0;
+        frequencyOut = (float)(440.0 * Math.Pow(2.0, exponent));
+        return frequencyOut > 0f;
+    }
 }

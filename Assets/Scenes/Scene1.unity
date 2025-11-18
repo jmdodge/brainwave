@@ -2064,8 +2064,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencerEvents
+  mode: 2
   tempoManager: {fileID: 1907658354}
-  sineWaveGenerator: {fileID: 0}
+  soundWaveGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -2077,11 +2078,14 @@ MonoBehaviour:
   steps:
   - rest: 1
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A4
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A4
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -2114,11 +2118,14 @@ MonoBehaviour:
         m_Calls: []
   - rest: 1
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: C5
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: C5
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -2139,11 +2146,14 @@ MonoBehaviour:
         m_Calls: []
   - rest: 1
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: E5
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: E5
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -2164,11 +2174,14 @@ MonoBehaviour:
         m_Calls: []
   - rest: 1
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A5
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A5
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -2872,8 +2885,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencerEvents
+  mode: 2
   tempoManager: {fileID: 1907658354}
-  sineWaveGenerator: {fileID: 0}
+  soundWaveGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 0
   loop: 1
@@ -2885,11 +2899,14 @@ MonoBehaviour:
   steps:
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A4
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A4
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -2922,11 +2939,14 @@ MonoBehaviour:
         m_Calls: []
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: C5
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: C5
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -2947,11 +2967,14 @@ MonoBehaviour:
         m_Calls: []
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: E5
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: E5
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -2972,11 +2995,14 @@ MonoBehaviour:
         m_Calls: []
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A5
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A5
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -3652,8 +3678,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencerEvents
+  mode: 2
   tempoManager: {fileID: 1907658354}
-  sineWaveGenerator: {fileID: 0}
+  soundWaveGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 0
   loop: 1
@@ -3665,11 +3692,14 @@ MonoBehaviour:
   steps:
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A4
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A4
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -3702,11 +3732,14 @@ MonoBehaviour:
         m_Calls: []
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: C5
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: C5
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -3727,11 +3760,14 @@ MonoBehaviour:
         m_Calls: []
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: E5
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: E5
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -3752,11 +3788,14 @@ MonoBehaviour:
         m_Calls: []
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A5
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A5
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -6207,8 +6246,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::StepSequencerEvents
+  mode: 2
   tempoManager: {fileID: 0}
-  sineWaveGenerator: {fileID: 0}
+  soundWaveGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -6220,11 +6260,14 @@ MonoBehaviour:
   steps:
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A4
-    frequencyHz: 440
     durationBeats: 0.5
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A4
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -6411,8 +6454,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencerEvents
+  mode: 2
   tempoManager: {fileID: 0}
-  sineWaveGenerator: {fileID: 0}
+  soundWaveGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -6424,11 +6468,14 @@ MonoBehaviour:
   steps:
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A5
-    frequencyHz: 440
     durationBeats: 4
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A5
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -6449,11 +6496,14 @@ MonoBehaviour:
         m_Calls: []
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A3
-    frequencyHz: 440
     durationBeats: 4
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A3
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -7461,8 +7511,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::StepSequencerEvents
+  mode: 2
   tempoManager: {fileID: 0}
-  sineWaveGenerator: {fileID: 0}
+  soundWaveGenerator: {fileID: 1431861830}
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -7474,11 +7525,14 @@ MonoBehaviour:
   steps:
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A4
-    frequencyHz: 440
     durationBeats: 1
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A4
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls:
@@ -7700,6 +7754,14 @@ MonoBehaviour:
     noteName: C4
     frequencyHz: 440
     durationBeats: 0.25
+  isRunning: 0
+  waitingForTransport: 0
+  noteActive: 0
+  currentPlayingStepIndex: 0
+  totalStepsScheduled: 0
+  playbackStartBeat: 0
+  startScheduled: 0
+  scheduledStartBeat: 0
 --- !u!114 &1449904864
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8980,8 +9042,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::StepSequencerEvents
+  mode: 2
   tempoManager: {fileID: 1907658354}
-  sineWaveGenerator: {fileID: 1624833214}
+  soundWaveGenerator: {fileID: 1624833214}
   triggerAudio: 1
   playOnStart: 0
   loop: 1
@@ -8993,11 +9056,14 @@ MonoBehaviour:
   steps:
   - rest: 0
     tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A2
-    frequencyHz: 440
     durationBeats: 1
-    sineWaveGenerator: {fileID: 0}
+    soundGenerator: {fileID: 0}
+    usePitch: 1
+    pitchMode: 0
+    pitchName: A2
+    pitchFrequency: 440
+    pitchSemitones: 0
+    velocity: 100
     onStepStart:
       m_PersistentCalls:
         m_Calls: []
@@ -9532,7 +9598,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmicSynthesizer
   tempoManager: {fileID: 1907658354}
-  sineWaveGenerator: {fileID: 1789206869}
+  soundWaveGenerator: {fileID: 1789206869}
   playOnStart: 1
   useNoteName: 1
   noteName: A2
@@ -9545,6 +9611,10 @@ MonoBehaviour:
   - 3
   canStartTransport: 1
   standaloneBpm: 100
+  isRunning: 0
+  currentCycleStartBeat: 0
+  nextTriggerBeat: 0
+  stepIndex: 0
 --- !u!114 &1789206869
 MonoBehaviour:
   m_ObjectHideFlags: 0

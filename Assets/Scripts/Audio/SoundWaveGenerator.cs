@@ -3,7 +3,7 @@ using System.Threading;
 using UnityEngine;
 
 [RequireComponent(typeof(AudioSource))]
-public class SoundWaveGenerator : MonoBehaviour
+public class SoundWaveGenerator : MonoBehaviour, ISoundGenerator
 {
     public enum Waveform
     {
@@ -296,6 +296,49 @@ public class SoundWaveGenerator : MonoBehaviour
         useNoteInput = false;
         RefreshFrequencyCache(true);
     }
+
+    // --- ISoundGenerator Interface Implementation ---
+
+    /// <summary>
+    /// ISoundGenerator: Sets pitch by frequency in Hz.
+    /// </summary>
+    public void SetPitch(float frequencyHz)
+    {
+        SetFrequency(frequencyHz);
+    }
+
+    /// <summary>
+    /// ISoundGenerator: Sets pitch using scientific pitch notation.
+    /// </summary>
+    public void SetPitchByName(string noteName)
+    {
+        SetNoteName(noteName);
+    }
+
+    /// <summary>
+    /// ISoundGenerator: Sets pitch offset in semitones from current frequency.
+    /// </summary>
+    public void SetPitchOffset(float semitones)
+    {
+        // Calculate new frequency from current frequency + semitone offset
+        // Formula: newFreq = currentFreq * 2^(semitones/12)
+        float currentFreq = useNoteInput ? (float)resolvedFrequency : frequency;
+        float newFreq = currentFreq * Mathf.Pow(2f, semitones / 12f);
+        SetFrequency(newFreq);
+    }
+
+    /// <summary>
+    /// ISoundGenerator: Sets velocity/amplitude (MIDI 0-127).
+    /// </summary>
+    public void SetVelocity(int velocity)
+    {
+        // Convert MIDI velocity (0-127) to amplitude (0-1)
+        // Using a curve: velocity^2 / 127^2 for more musical response
+        float normalized = velocity / 127f;
+        amplitude = normalized * normalized; // Square for exponential feel
+    }
+
+    // --- End ISoundGenerator Interface ---
 
     void RefreshFrequencyCache(bool force = false)
     {

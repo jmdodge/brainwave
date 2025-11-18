@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using Sirenix.OdinInspector;
-using UnityEngine.Serialization;
 
 [AddComponentMenu("Audio/Step Sequencer")]
 public sealed class StepSequencer : MonoBehaviour
@@ -22,8 +21,14 @@ public sealed class StepSequencer : MonoBehaviour
     void StartTransportButton() => StartTransportManually();
 
     [TitleGroup("Settings", order: 0)]
+    [SerializeField] SequencerMode mode = SequencerMode.AudioAndEvents;
     [SerializeField] TempoManager tempoManager;
-    [FormerlySerializedAs("sineWaveGenerator")] [SerializeField] SoundWaveGenerator soundWaveGenerator;
+
+    [ShowIf("@mode == SequencerMode.AudioOnly || mode == SequencerMode.AudioAndEvents")]
+    [Tooltip("Default sound generator for steps that don't specify their own.")]
+    [SerializeField] MonoBehaviour soundWaveGenerator; // ISoundGenerator interface
+
+    [ShowIf("@mode == SequencerMode.AudioOnly || mode == SequencerMode.AudioAndEvents")]
     [SerializeField] bool triggerAudio = true;
     [SerializeField] bool playOnStart = true;
     [SerializeField] bool loop = true;
@@ -33,7 +38,7 @@ public sealed class StepSequencer : MonoBehaviour
     [SerializeField] bool quantizeStart = true;
     [Min(0f)] [SerializeField] float startQuantizationBeats = 1f;
     [TitleGroup("Steps", order: 1)]
-    [TableList(ShowIndexLabels = true, AlwaysExpanded = true)]
+    [ListDrawerSettings(ShowIndexLabels = true, ListElementLabelName = "GetStepLabel", DefaultExpandedState = true)]
     [SerializeField] List<SequenceStep> steps = new() { SequenceStep.Default() };
 
     readonly List<RuntimeStep> runtimeSteps = new();
@@ -49,7 +54,7 @@ public sealed class StepSequencer : MonoBehaviour
     bool isRunning; // True when sequence is actively playing
     bool waitingForTransport; // True when waiting for transport to start before playing
     bool noteActive; // True when a note is currently sounding (not a rest)
-    SoundWaveGenerator activeGenerator; // The generator currently playing the note
+    ISoundGenerator activeGenerator; // The generator currently playing the note
 
     // --- Scheduling State ---
     // The "playhead" - which step in the sequence is currently playing
@@ -315,6 +320,9 @@ public sealed class StepSequencer : MonoBehaviour
     }
 
 
+    /**
+     * Compiles design-time SequenceSteps into optimized RuntimeSteps with validated values.
+     */
     void PrepareRuntimeSteps()
     {
         runtimeSteps.Clear();
@@ -325,22 +333,36 @@ public sealed class StepSequencer : MonoBehaviour
             if (runtimeSteps.Count >= maxRuntimeSteps) break;
             if (step == null) continue;
 
+            // Sanitize values
             float sanitizedDuration = Mathf.Max(minStepDurationBeats, step.durationBeats);
-            float sanitizedFrequency = Mathf.Max(minFrequencyHz, step.frequencyHz);
             bool sanitizedTie = !step.rest && step.tieFromPrevious;
-            bool sanitizedUseNoteName = step.useNoteName;
-            string sanitizedNoteName = string.IsNullOrWhiteSpace(step.noteName) ? defaultNoteName : step.noteName;
-            SoundWaveGenerator resolvedGenerator = step.soundWaveGenerator != null ? step.soundWaveGenerator : soundWaveGenerator;
+            string sanitizedPitchName = string.IsNullOrWhiteSpace(step.pitchName) ? defaultNoteName : step.pitchName;
+            float sanitizedPitchFrequency = Mathf.Max(minFrequencyHz, step.pitchFrequency);
+            float sanitizedPitchSemitones = Mathf.Clamp(step.pitchSemitones, -48f, 48f);
+            int sanitizedVelocity = Mathf.Clamp(step.velocity, 0, 127);
+
+            // Resolve sound generator (step's generator or sequencer's default)
+            MonoBehaviour generatorComponent = step.soundGenerator != null ? step.soundGenerator : soundWaveGenerator;
+            ISoundGenerator resolvedGenerator = generatorComponent as ISoundGenerator;
+
+            if (resolvedGenerator == null && !step.rest && triggerAudio)
+            {
+                Debug.LogWarning($"Step {runtimeSteps.Count} has no valid ISoundGenerator. Skipping.", this);
+                continue;
+            }
 
             runtimeSteps.Add(new RuntimeStep(
                 step,
                 step.rest,
                 sanitizedTie,
-                sanitizedUseNoteName,
-                sanitizedNoteName,
-                sanitizedFrequency,
                 sanitizedDuration,
-                resolvedGenerator));
+                resolvedGenerator,
+                step.usePitch,
+                step.pitchMode,
+                sanitizedPitchName,
+                sanitizedPitchFrequency,
+                sanitizedPitchSemitones,
+                sanitizedVelocity));
 
             EnsureUnityEvents(step);
         }
@@ -399,16 +421,31 @@ public sealed class StepSequencer : MonoBehaviour
         return !runtimeSteps[stepIndex - 1].rest;
     }
 
+    /**
+     * Applies pitch and velocity settings to the sound generator before triggering.
+     */
     void ApplyStepPitch(RuntimeStep step)
     {
         if (!triggerAudio || step.generator == null) return;
-        if (step.useNoteName)
+
+        // Set velocity (always applied)
+        step.generator.SetVelocity(step.velocity);
+
+        // Set pitch (only if enabled for this step)
+        if (step.usePitch)
         {
-            step.generator.SetNoteName(step.noteName);
-        }
-        else
-        {
-            step.generator.SetFrequency(step.frequencyHz);
+            switch (step.pitchMode)
+            {
+                case PitchMode.NoteName:
+                    step.generator.SetPitchByName(step.pitchName);
+                    break;
+                case PitchMode.Frequency:
+                    step.generator.SetPitch(step.pitchFrequency);
+                    break;
+                case PitchMode.Semitones:
+                    step.generator.SetPitchOffset(step.pitchSemitones);
+                    break;
+            }
         }
     }
 
@@ -537,26 +574,48 @@ public sealed class StepSequencer : MonoBehaviour
         [Tooltip("When true, this step sustains the previous note instead of retriggering.")]
         public bool tieFromPrevious;
 
-        [Tooltip("Use scientific pitch notation (e.g. C4). When false, frequencyHz is used.")]
-        public bool useNoteName = true;
-
-        [Tooltip("Scientific pitch notation for this step.")]
-        public string noteName = defaultNoteName;
-
-        [Tooltip("Raw frequency in hertz for this step when not using note names.")]
-        public float frequencyHz = 440f;
-
         [Tooltip("Duration of this step in beats.")]
         public float durationBeats = 1f;
 
-        [FormerlySerializedAs("sineWaveGenerator")] [Tooltip("Optional SineWaveGenerator to use for this step. If null, uses the default generator.")]
-        public SoundWaveGenerator soundWaveGenerator;
+        // --- Sound Generator ---
+        [ShowIf("@$root.mode != SequencerMode.EventsOnly")]
+        [Tooltip("Sound generator to use for this step. If null, uses the sequencer's default generator.")]
+        public MonoBehaviour soundGenerator; // Will be cast to ISoundGenerator
 
-        [HideInTables]
+        // --- Pitch Configuration ---
+        [ShowIf("@$root.mode != SequencerMode.EventsOnly")]
+        [Tooltip("Whether to set pitch for this step. Disable for unpitched drums.")]
+        public bool usePitch = true;
+
+        [ShowIf("@$root.mode != SequencerMode.EventsOnly && usePitch")]
+        [Tooltip("How pitch is specified for this step.")]
+        public PitchMode pitchMode = PitchMode.NoteName;
+
+        [ShowIf("@$root.mode != SequencerMode.EventsOnly && usePitch && pitchMode == PitchMode.NoteName")]
+        [Tooltip("Pitch as note name (e.g., 'C4', 'A#3').")]
+        public string pitchName = defaultNoteName;
+
+        [ShowIf("@$root.mode != SequencerMode.EventsOnly && usePitch && pitchMode == PitchMode.Frequency")]
+        [Tooltip("Pitch as frequency in Hz.")]
+        public float pitchFrequency = 440f;
+
+        [ShowIf("@$root.mode != SequencerMode.EventsOnly && usePitch && pitchMode == PitchMode.Semitones")]
+        [Tooltip("Pitch offset in semitones from base pitch (±48 = ±4 octaves).")]
+        [Range(-48f, 48f)]
+        public float pitchSemitones = 0f;
+
+        // --- Velocity ---
+        [ShowIf("@$root.mode != SequencerMode.EventsOnly")]
+        [Tooltip("MIDI velocity (0-127). Default: 100 (forte).")]
+        [Range(0, 127)]
+        public int velocity = 100;
+
+        // --- UnityEvents ---
+        [ShowIf("@$root.mode != SequencerMode.AudioOnly")]
         [Tooltip("UnityEvents that fire immediately when this step begins.")]
         public UnityEvent onStepStart = new();
 
-        [HideInTables]
+        [ShowIf("@$root.mode != SequencerMode.AudioOnly")]
         [Tooltip("UnityEvents that fire when this step completes.")]
         public UnityEvent onStepEnd = new();
 
@@ -564,42 +623,95 @@ public sealed class StepSequencer : MonoBehaviour
         {
             return new SequenceStep();
         }
+
+        /// <summary>
+        /// Provides a readable label for this step in the inspector list.
+        /// </summary>
+        public string GetStepLabel()
+        {
+            if (rest)
+                return $"Rest ({durationBeats}♩)";
+
+            if (tieFromPrevious)
+                return $"Tie ({durationBeats}♩)";
+
+            string label = "";
+
+            // Add pitch info if relevant
+            if (usePitch)
+            {
+                label += pitchMode switch
+                {
+                    PitchMode.NoteName => pitchName,
+                    PitchMode.Frequency => $"{pitchFrequency}Hz",
+                    PitchMode.Semitones => $"{pitchSemitones:+0;-0}st",
+                    _ => ""
+                };
+            }
+            else
+            {
+                label += "No pitch";
+            }
+
+            // Add duration
+            label += $" ({durationBeats}♩)";
+
+            // Add velocity if not default
+            if (velocity != 100)
+                label += $" vel:{velocity}";
+
+            return label;
+        }
     }
 
+    /// <summary>
+    /// Compiled runtime representation of a SequenceStep with all values validated and cached.
+    /// </summary>
     readonly struct RuntimeStep
     {
-        public readonly SequenceStep source;
-        public readonly bool rest;
-        public readonly bool tieFromPrevious;
-        public readonly bool useNoteName;
-        public readonly string noteName;
-        public readonly float frequencyHz;
-        public readonly float durationBeats;
-        public readonly SoundWaveGenerator generator;
+        public readonly SequenceStep source;      // Original step (for UnityEvents)
+        public readonly bool rest;                // Is this a rest (no sound)?
+        public readonly bool tieFromPrevious;     // Does this tie from the previous note?
+        public readonly float durationBeats;      // How long this step lasts
+        public readonly ISoundGenerator generator; // The sound generator to use
+        public readonly bool usePitch;            // Should pitch be set?
+        public readonly PitchMode pitchMode;      // How pitch is specified
+        public readonly string pitchName;         // Pitch as note name
+        public readonly float pitchFrequency;     // Pitch as Hz
+        public readonly float pitchSemitones;     // Pitch as semitone offset
+        public readonly int velocity;             // MIDI velocity (0-127)
 
         public RuntimeStep(
             SequenceStep source,
             bool rest,
             bool tieFromPrevious,
-            bool useNoteName,
-            string noteName,
-            float frequencyHz,
             float durationBeats,
-            SoundWaveGenerator generator)
+            ISoundGenerator generator,
+            bool usePitch,
+            PitchMode pitchMode,
+            string pitchName,
+            float pitchFrequency,
+            float pitchSemitones,
+            int velocity)
         {
             this.source = source;
             this.rest = rest;
             this.tieFromPrevious = tieFromPrevious;
-            this.useNoteName = useNoteName;
-            this.noteName = noteName;
-            this.frequencyHz = frequencyHz;
             this.durationBeats = durationBeats;
             this.generator = generator;
+            this.usePitch = usePitch;
+            this.pitchMode = pitchMode;
+            this.pitchName = pitchName;
+            this.pitchFrequency = pitchFrequency;
+            this.pitchSemitones = pitchSemitones;
+            this.velocity = velocity;
         }
 
         public RuntimeStep WithTieFromPrevious(bool tieFromPrevious)
         {
-            return new RuntimeStep(source, rest, tieFromPrevious, useNoteName, noteName, frequencyHz, durationBeats, generator);
+            return new RuntimeStep(
+                source, rest, tieFromPrevious, durationBeats, generator,
+                usePitch, pitchMode, pitchName, pitchFrequency, pitchSemitones, velocity);
         }
     }
 }
