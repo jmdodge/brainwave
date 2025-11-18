@@ -27,6 +27,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
     [SerializeField] bool playOnStart = true;
     [SerializeField] bool loop = true;
     [SerializeField] bool canStartTransport;
+    [SerializeField] bool waitForTransport;
     [SerializeField] float standaloneBpm = 100f;
     [SerializeField] bool quantizeStart = true;
     [Min(0f)] [SerializeField] float startQuantizationBeats = 1f;
@@ -53,6 +54,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
     bool startScheduled;
     double scheduledStartBeat;
     TempoManager.TempoEventHandle startHandle;
+    bool waitingForTransport;
 
 #if UNITY_EDITOR
     /**
@@ -72,12 +74,31 @@ public sealed class StepSequencerEvents : MonoBehaviour
     {
         if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
         if (triggerAudio && sineWaveGenerator == null) sineWaveGenerator = GetComponent<SineWaveGenerator>();
-        if (!playOnStart) return;
-        StartSequence();
+    }
+
+    void Start()
+    {
+        if (playOnStart)
+        {
+            if (waitForTransport && (tempoManager == null || !tempoManager.TransportRunning))
+            {
+                waitingForTransport = true;
+            }
+            else
+            {
+                StartSequence();
+            }
+        }
     }
 
     void Update()
     {
+        if (waitingForTransport && tempoManager != null && tempoManager.TransportRunning)
+        {
+            waitingForTransport = false;
+            StartSequence();
+        }
+
         if (!isRunning || tempoManager == null || runtimeSteps.Count == 0) return;
 
         double currentBeat = tempoManager.CurrentBeat;
@@ -127,6 +148,7 @@ public sealed class StepSequencerEvents : MonoBehaviour
             startScheduled = false;
         }
 
+        waitingForTransport = false;
         isRunning = false;
         if (noteActive && triggerAudio && activeGenerator != null)
         {

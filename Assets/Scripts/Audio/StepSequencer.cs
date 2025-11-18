@@ -10,6 +10,7 @@ public sealed class StepSequencer : MonoBehaviour
     [SerializeField] bool playOnStart = true;
     [SerializeField] bool loop = true;
     [SerializeField] bool canStartTransport;
+    [SerializeField] bool waitForTransport;
     [SerializeField] float standaloneBpm = 100f;
     [SerializeField] bool quantizeStart = true;
     [Min(0f)]
@@ -32,21 +33,37 @@ public sealed class StepSequencer : MonoBehaviour
     bool startScheduled;
     double scheduledStartBeat;
     TempoManager.TempoEventHandle startHandle;
+    bool waitingForTransport;
 
     void OnEnable()
     {
         if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
         if (sineWaveGenerator == null) sineWaveGenerator = GetComponent<SineWaveGenerator>();
-        if (!playOnStart) return;
-        StartSequence();
     }
 
     void Start()
     {
+        if (playOnStart)
+        {
+            if (waitForTransport && (tempoManager == null || !tempoManager.TransportRunning))
+            {
+                waitingForTransport = true;
+            }
+            else
+            {
+                StartSequence();
+            }
+        }
     }
 
     void Update()
     {
+        if (waitingForTransport && tempoManager != null && tempoManager.TransportRunning)
+        {
+            waitingForTransport = false;
+            StartSequence();
+        }
+
         if (!isRunning || tempoManager == null || runtimeSteps.Count == 0) return;
 
         double currentBeat = tempoManager.CurrentBeat;
@@ -92,6 +109,7 @@ public sealed class StepSequencer : MonoBehaviour
             startScheduled = false;
         }
 
+        waitingForTransport = false;
         isRunning = false;
         if (noteActive)
         {

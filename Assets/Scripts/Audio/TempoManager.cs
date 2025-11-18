@@ -233,6 +233,12 @@ public sealed class TempoManager : MonoBehaviour
         RecalculateScheduledEventTimes();
     }
 
+    public void StartTransport()
+    {
+        double startDspTime = AudioSettings.dspTime + 0.1;
+        StartTransport(startDspTime);
+    }
+
     /**
      * Arms the transport so beat dispatch begins exactly when the DSP timeline reaches the supplied timestamp.
      * Resets the beat anchor so transport always starts at beat 0 (bar 1, beat 1).
