@@ -54,6 +54,11 @@ public sealed class StepSequencer : MonoBehaviour
     [SerializeField] bool quantizeStart = true;
     [Min(0f)] [SerializeField] float startQuantizationBeats = 1f;
 
+    [TitleGroup("Timing")]
+    [Tooltip("Global timing offset in beats. Negative values make events fire earlier, positive values make them fire later.")]
+    [SerializeField]
+    float timingOffsetBeats = 0f;
+
     [TitleGroup("Steps", order: 1)]
     [ListDrawerSettings(ShowIndexLabels = true, ListElementLabelName = "GetStepLabel", DefaultExpandedState = true)]
     [SerializeField]
@@ -246,6 +251,9 @@ public sealed class StepSequencer : MonoBehaviour
         // Calculate when this step should trigger (in beats from start)
         double stepStartBeat = CalculateStepStartBeat(totalStepsScheduled);
 
+        // Apply global timing offset
+        double offsetStepStartBeat = stepStartBeat + timingOffsetBeats;
+
         // Register event for lookahead systems (visual/gameplay) - skip if event type is None
         if (tempoManager != null && step.eventType != SequenceEventType.None)
         {
@@ -259,13 +267,13 @@ public sealed class StepSequencer : MonoBehaviour
             // Use per-step tag if specified, otherwise use default tag
             string eventTag = !string.IsNullOrEmpty(step.eventTag) ? step.eventTag : defaultEventTag;
 
-            tempoManager.RegisterScheduledEvent(stepStartBeat, this, eventTypeString, stepIndexInSequence, eventTag);
+            tempoManager.RegisterScheduledEvent(offsetStepStartBeat, this, eventTypeString, stepIndexInSequence, eventTag);
             Debug.Log(
-                $"[StepSequencer] Registered {eventTypeString} {stepIndexInSequence} at beat {stepStartBeat:F2} with tag '{eventTag}'");
+                $"[StepSequencer] Registered {eventTypeString} {stepIndexInSequence} at beat {offsetStepStartBeat:F2} (offset: {timingOffsetBeats:F3}) with tag '{eventTag}'");
         }
 
         // Schedule the step to trigger at the calculated beat (this handles audio)
-        var handle = tempoManager.ScheduleAtBeat(stepStartBeat, () => { OnStepTriggered(stepIndexInSequence); });
+        var handle = tempoManager.ScheduleAtBeat(offsetStepStartBeat, () => { OnStepTriggered(stepIndexInSequence); });
 
         scheduledEventHandles.Add(handle);
         totalStepsScheduled++;
