@@ -11,16 +11,16 @@ public class BrainwaveControllerBeats : MonoBehaviour
     [SerializeField] private List<GameObject> rings = new();
 
     [SerializeField, Min(0f), Tooltip("How early (in beats) to start the ring animation before a next event's beat time")]
-    private float stepNextAnimationLookahead = 0.25f;
+    private float stepNextAnimationLookahead = 0.125f;
     
     [SerializeField, Min(0f), Tooltip("How early (in beats) to start the ring animation before the last event's beat time")]
-    private float stepEndAnimationLookahead = 0.25f;
+    private float stepEndAnimationLookahead = 0.125f;
     
     [SerializeField, Min(0f)]
     private float ringScaleDurationBeats = 0.25f;
 
     [SerializeField, Min(0f)]
-    private float ringShakeDurationBeats = 0.5f;
+    private float ringShakeDurationBeats = 0.25f;
 
     [SerializeField] private float ringShakeStrength = 0.1f;
 
@@ -29,6 +29,9 @@ public class BrainwaveControllerBeats : MonoBehaviour
 
     [SerializeField]
     private UnityEvent onSequenceComplete;
+    
+    [SerializeField, Tooltip("Turn this off if you want to have multiple sources reading sequencer events")] 
+    private bool doCleanupOwnEvents = true;
 
     [SerializeField] private TempoManager tempoManager;
 
@@ -173,7 +176,8 @@ public class BrainwaveControllerBeats : MonoBehaviour
             }
         }
 
-        // Clean up processed events from TempoManager
+        // Clean up processed events from TempoManager, if configured to do so.
+        if(!doCleanupOwnEvents) idsToCleanup.Clear();
         if (idsToCleanup.Count > 0)
         {
             tempoManager.CleanupEventsByIds(idsToCleanup);
