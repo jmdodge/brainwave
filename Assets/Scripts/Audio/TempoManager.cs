@@ -138,6 +138,12 @@ public sealed class TempoManager : MonoBehaviour
     public sealed class RegisteredEventInfo
     {
         /// <summary>
+        /// Unique identifier for this event. Use this to track processed events and for cleanup.
+        /// Example: BrainwaveController uses this ID to mark events as processed and clean them up.
+        /// </summary>
+        public Guid Id { get; internal set; }
+
+        /// <summary>
         /// The absolute beat time when this event will occur (e.g., 4.0, 8.5).
         /// This is the same beat index used by ScheduleAtBeat().
         /// Example: If an event is scheduled at beat 16.0, BeatTime = 16.0
@@ -164,6 +170,13 @@ public sealed class TempoManager : MonoBehaviour
         /// - Custom types: Any string your system needs
         /// </summary>
         public string EventType { get; internal set; }
+
+        /// <summary>
+        /// Optional tag for filtering events by category or purpose.
+        /// Example: "drums", "bass", "melody", "player1", "enemy_wave_1"
+        /// Allows consumers to filter events without needing object references.
+        /// </summary>
+        public string Tag { get; internal set; }
 
         /// <summary>
         /// Optional additional data about this event.
@@ -433,26 +446,31 @@ public sealed class TempoManager : MonoBehaviour
      * <param name="source">The object registering this event (typically 'this'). Used for filtering.</param>
      * <param name="eventType">A string identifying the event type (e.g., "step_trigger", "note_on")</param>
      * <param name="payload">Optional data about the event (e.g., step index, note pitch, etc.)</param>
+     * <param name="tag">Optional tag for categorizing events (e.g., "drums", "bass", "player1")</param>
+     * <returns>The unique ID of the registered event (use for cleanup via CleanupEventById)</returns>
      *
      * Example:
      * // In a StepSequencer, when scheduling step 5 at beat 8.0:
-     * tempoManager.RegisterScheduledEvent(8.0, this, "step_trigger", 5);
+     * Guid eventId = tempoManager.RegisterScheduledEvent(8.0, this, "step_trigger", 5, "drums");
      *
      * // Later, a visual system queries:
-     * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, 1.0f);
-     * // Returns events between currentBeat and currentBeat + 1.0
+     * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, 1.0f, tagFilter: "drums");
+     * // Returns events between currentBeat and currentBeat + 1.0 with tag "drums"
      */
-    public void RegisterScheduledEvent(double beatTime, object source, string eventType, object payload = null)
+    public Guid RegisterScheduledEvent(double beatTime, object source, string eventType, object payload = null, string tag = null)
     {
         var eventInfo = new RegisteredEventInfo
         {
+            Id = Guid.NewGuid(),
             BeatTime = beatTime,
             Source = source,
             EventType = eventType,
+            Tag = tag,
             Payload = payload
         };
 
         registeredEvents.Add(eventInfo);
+        return eventInfo.Id;
     }
 
     /**
@@ -462,6 +480,8 @@ public sealed class TempoManager : MonoBehaviour
      * <param name="fromBeat">The starting beat time to search from (typically CurrentBeat)</param>
      * <param name="lookaheadBeats">How many beats ahead to search (e.g., 0.5 = half a beat ahead)</param>
      * <param name="sourceFilter">Optional: only return events from this source object (e.g., a specific StepSequencer)</param>
+     * <param name="tagFilter">Optional: only return events with this tag (e.g., "drums", "bass")</param>
+     * <param name="eventTypeFilter">Optional: only return events of this type (e.g., "sequence_start")</param>
      * <returns>List of events occurring between fromBeat and fromBeat + lookaheadBeats</returns>
      *
      * Example 1 - Query all events in the next 1 beat:
@@ -470,10 +490,18 @@ public sealed class TempoManager : MonoBehaviour
      * // Returns all events between beat 3.75 and 4.75
      *
      * Example 2 - Query events from a specific sequencer:
-     * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, 0.5, myStepSequencer);
+     * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, 0.5, sourceFilter: myStepSequencer);
      * // Returns only events from myStepSequencer that occur in the next 0.5 beats
      *
-     * Example 3 - Prepare animations to finish on-beat:
+     * Example 3 - Query events by tag:
+     * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, 1.0, tagFilter: "drums");
+     * // Returns only events tagged "drums" in the next 1 beat
+     *
+     * Example 4 - Query specific event type:
+     * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, 2.0, eventTypeFilter: "sequence_start");
+     * // Returns only "sequence_start" events in the next 2 beats
+     *
+     * Example 5 - Prepare animations to finish on-beat:
      * double animationDuration = 0.5; // beats
      * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, animationDuration);
      * foreach (var evt in upcoming) {
@@ -482,7 +510,12 @@ public sealed class TempoManager : MonoBehaviour
      *     ScheduleAnimation(startDelay);
      * }
      */
-    public List<RegisteredEventInfo> GetUpcomingEvents(double fromBeat, double lookaheadBeats, object sourceFilter = null)
+    public List<RegisteredEventInfo> GetUpcomingEvents(
+        double fromBeat,
+        double lookaheadBeats,
+        object sourceFilter = null,
+        string tagFilter = null,
+        string eventTypeFilter = null)
     {
         double endBeat = fromBeat + lookaheadBeats;
         var results = new List<RegisteredEventInfo>();
@@ -492,6 +525,8 @@ public sealed class TempoManager : MonoBehaviour
             if (eventInfo.BeatTime < fromBeat) continue;
             if (eventInfo.BeatTime > endBeat) continue;
             if (sourceFilter != null && eventInfo.Source != sourceFilter) continue;
+            if (tagFilter != null && eventInfo.Tag != tagFilter) continue;
+            if (eventTypeFilter != null && eventInfo.EventType != eventTypeFilter) continue;
 
             results.Add(eventInfo);
         }
@@ -579,21 +614,70 @@ public sealed class TempoManager : MonoBehaviour
     }
 
     /**
-     * Removes registered events that have already passed (with a small buffer to avoid premature cleanup).
+     * Removes registered events that have already passed (with a buffer to avoid premature cleanup).
      * Called automatically in Update() to prevent the list from growing indefinitely.
      *
-     * Events are kept for 0.1 beats after they pass to ensure any last-minute queries can still see them.
+     * Events are kept for 8 beats after they pass to allow consumers time to process them.
+     * Consumers should clean up their processed events using CleanupEventById().
      */
     void CleanupPastRegisteredEvents(double dspNow)
     {
         if (registeredEvents.Count == 0) return;
 
         double currentBeat = GetBeatAtDsp(dspNow);
-        // Keep a small buffer (0.1 beats) to avoid cleaning up events that are about to fire
-        // Example: If currentBeat = 5.0, we remove events before beat 4.9
-        double cleanupBeat = currentBeat - 0.1;
+        // Keep a buffer of 8 beats to allow consumers time to process events
+        // Example: If currentBeat = 10.0, we remove events before beat 2.0
+        double cleanupBeat = currentBeat - 8.0;
 
         registeredEvents.RemoveAll(evt => evt.BeatTime < cleanupBeat);
+    }
+
+    /**
+     * Removes a specific registered event by its unique ID.
+     * Consumers should call this after processing an event to clean it up.
+     *
+     * <param name="eventId">The unique ID of the event to remove</param>
+     * <returns>True if the event was found and removed, false otherwise</returns>
+     *
+     * Example:
+     * // In BrainwaveController, after processing an event:
+     * foreach (var evt in upcomingEvents) {
+     *     ProcessEvent(evt);
+     *     tempoManager.CleanupEventById(evt.Id);
+     * }
+     */
+    public bool CleanupEventById(Guid eventId)
+    {
+        int index = registeredEvents.FindIndex(evt => evt.Id == eventId);
+        if (index < 0) return false;
+
+        registeredEvents.RemoveAt(index);
+        return true;
+    }
+
+    /**
+     * Removes multiple registered events by their unique IDs.
+     * More efficient than calling CleanupEventById() in a loop.
+     *
+     * <param name="eventIds">Collection of event IDs to remove</param>
+     * <returns>Number of events that were found and removed</returns>
+     *
+     * Example:
+     * // In BrainwaveController, after processing multiple events:
+     * var processedIds = new HashSet<Guid>();
+     * foreach (var evt in upcomingEvents) {
+     *     ProcessEvent(evt);
+     *     processedIds.Add(evt.Id);
+     * }
+     * tempoManager.CleanupEventsByIds(processedIds);
+     */
+    public int CleanupEventsByIds(IEnumerable<Guid> eventIds)
+    {
+        if (eventIds == null) return 0;
+
+        var idsToRemove = new HashSet<Guid>(eventIds);
+        int removedCount = registeredEvents.RemoveAll(evt => idsToRemove.Contains(evt.Id));
+        return removedCount;
     }
 
     /**

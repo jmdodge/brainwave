@@ -2067,6 +2067,7 @@ MonoBehaviour:
   mode: 1
   tempoManager: {fileID: 1907658354}
   soundGenerator: {fileID: 0}
+  defaultEventTag: 
   triggerAudio: 1
   playOnStart: 0
   loop: 1
@@ -2079,7 +2080,8 @@ MonoBehaviour:
   - rest: 1
     tieFromPrevious: 0
     durationBeats: 1
-    eventType: 1
+    eventType: 2
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 0
     pitchMode: 0
@@ -2096,7 +2098,8 @@ MonoBehaviour:
   - rest: 1
     tieFromPrevious: 0
     durationBeats: 1
-    eventType: 0
+    eventType: 1
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 0
     pitchMode: 0
@@ -2113,7 +2116,8 @@ MonoBehaviour:
   - rest: 1
     tieFromPrevious: 0
     durationBeats: 1
-    eventType: 0
+    eventType: 1
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 0
     pitchMode: 0
@@ -2130,7 +2134,8 @@ MonoBehaviour:
   - rest: 1
     tieFromPrevious: 0
     durationBeats: 1
-    eventType: 2
+    eventType: 3
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 0
     pitchMode: 0
@@ -2182,6 +2187,8 @@ MonoBehaviour:
         m_CallState: 2
   tempoManager: {fileID: 1907658354}
   stepSequencer: {fileID: 197492698}
+  eventTagFilter: 
+  staleEventThresholdBeats: 1
 --- !u!1 &266927355
 GameObject:
   m_ObjectHideFlags: 0
@@ -2833,6 +2840,7 @@ MonoBehaviour:
   mode: 2
   tempoManager: {fileID: 1907658354}
   soundGenerator: {fileID: 0}
+  defaultEventTag: 
   triggerAudio: 1
   playOnStart: 0
   loop: 1
@@ -2846,6 +2854,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 0.5
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -2887,6 +2896,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 0.5
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -2916,6 +2926,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 0.5
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -2945,6 +2956,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 0.5
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -3216,6 +3228,8 @@ MonoBehaviour:
         m_CallState: 2
   tempoManager: {fileID: 1907658354}
   stepSequencer: {fileID: 0}
+  eventTagFilter: 
+  staleEventThresholdBeats: 1
 --- !u!1 &555354317
 GameObject:
   m_ObjectHideFlags: 0
@@ -3631,6 +3645,7 @@ MonoBehaviour:
   mode: 2
   tempoManager: {fileID: 1907658354}
   soundGenerator: {fileID: 0}
+  defaultEventTag: 
   triggerAudio: 1
   playOnStart: 0
   loop: 1
@@ -3644,6 +3659,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 0.5
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -3685,6 +3701,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 0.5
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -3714,6 +3731,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 0.5
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -3743,6 +3761,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 0.5
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -3868,6 +3887,8 @@ MonoBehaviour:
         m_CallState: 2
   tempoManager: {fileID: 1907658354}
   stepSequencer: {fileID: 0}
+  eventTagFilter: 
+  staleEventThresholdBeats: 1
 --- !u!1 &603558238
 GameObject:
   m_ObjectHideFlags: 0
@@ -6204,6 +6225,7 @@ MonoBehaviour:
   mode: 2
   tempoManager: {fileID: 0}
   soundGenerator: {fileID: 0}
+  defaultEventTag: 
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -6217,6 +6239,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 0.5
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -6413,6 +6436,7 @@ MonoBehaviour:
   mode: 2
   tempoManager: {fileID: 0}
   soundGenerator: {fileID: 0}
+  defaultEventTag: 
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -6426,6 +6450,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 4
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -6455,6 +6480,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 4
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -7464,7 +7490,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1431861827}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
@@ -7472,6 +7498,7 @@ MonoBehaviour:
   mode: 0
   tempoManager: {fileID: 0}
   soundGenerator: {fileID: 1431861830}
+  defaultEventTag: 
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -7485,6 +7512,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 1
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 0
     pitchMode: 0
@@ -7514,6 +7542,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 1
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 0
     pitchMode: 0
@@ -7696,48 +7725,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a76baa9967620a040a589a00b574d5f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencer
-  tempoManager: {fileID: 1907658354}
-  sineWaveGenerator: {fileID: 1449904864}
-  playOnStart: 1
-  loop: 1
-  canStartTransport: 0
-  waitForTransport: 0
-  standaloneBpm: 100
-  quantizeStart: 1
-  startQuantizationBeats: 1
-  steps:
-  - rest: 0
-    tieFromPrevious: 0
-    useNoteName: 1
-    noteName: A3
-    frequencyHz: 440
-    durationBeats: 0.25
-  - rest: 0
-    tieFromPrevious: 0
-    useNoteName: 1
-    noteName: C4
-    frequencyHz: 440
-    durationBeats: 0.25
-  - rest: 0
-    tieFromPrevious: 0
-    useNoteName: 1
-    noteName: E4
-    frequencyHz: 440
-    durationBeats: 0.25
-  - rest: 0
-    tieFromPrevious: 0
-    useNoteName: 1
-    noteName: C4
-    frequencyHz: 440
-    durationBeats: 0.25
-  isRunning: 0
-  waitingForTransport: 0
-  noteActive: 0
-  currentPlayingStepIndex: 0
-  totalStepsScheduled: 0
-  playbackStartBeat: 0
-  startScheduled: 0
-  scheduledStartBeat: 0
 --- !u!114 &1449904864
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9021,6 +9008,7 @@ MonoBehaviour:
   mode: 2
   tempoManager: {fileID: 1907658354}
   soundGenerator: {fileID: 0}
+  defaultEventTag: 
   triggerAudio: 1
   playOnStart: 0
   loop: 1
@@ -9034,6 +9022,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 1
     eventType: 0
+    eventTag: 
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -9574,24 +9563,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc49bf36ba62acf4da8bbe37921d5eb9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmicSynthesizer
-  tempoManager: {fileID: 1907658354}
-  soundWaveGenerator: {fileID: 1789206869}
-  playOnStart: 1
-  useNoteName: 1
-  noteName: A2
-  frequency: 440
-  cycleLengthBeats: 4
-  beatOffsets:
-  - 0
-  - 1
-  - 2
-  - 3
-  canStartTransport: 1
-  standaloneBpm: 100
-  isRunning: 0
-  currentCycleStartBeat: 0
-  nextTriggerBeat: 0
-  stepIndex: 0
 --- !u!114 &1789206869
 MonoBehaviour:
   m_ObjectHideFlags: 0

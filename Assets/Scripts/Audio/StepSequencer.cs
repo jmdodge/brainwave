@@ -6,9 +6,10 @@ using Sirenix.OdinInspector;
 
 public enum SequenceEventType
 {
-    SequenceNext,
-    SequenceStart,
-    SequenceEnd
+    None, // No event registered (for audio-only sequencers)
+    SequenceNext, // Normal step event
+    SequenceStart, // Sequence initialization event
+    SequenceEnd // Sequence completion event
 }
 
 [AddComponentMenu("Audio/Step Sequencer")]
@@ -27,16 +28,24 @@ public sealed class StepSequencer : MonoBehaviour
     [Button(ButtonSizes.Medium), GUIColor(0.4f, 0.8f, 1f)]
     void StartTransportButton() => StartTransportManually();
 
-    [TitleGroup("Settings", order: 0)]
-    [SerializeField] SequencerMode mode = SequencerMode.AudioAndEvents;
+    [TitleGroup("Settings", order: 0)] [SerializeField]
+    SequencerMode mode = SequencerMode.AudioAndEvents;
+
     [SerializeField] TempoManager tempoManager;
 
     [ShowIf("@mode == SequencerMode.AudioOnly || mode == SequencerMode.AudioAndEvents")]
     [Tooltip("Default sound generator for steps that don't specify their own.")]
-    [SerializeField] MonoBehaviour soundGenerator; // ISoundGenerator interface
+    [SerializeField]
+    MonoBehaviour soundGenerator; // ISoundGenerator interface
 
-    [ShowIf("@mode == SequencerMode.AudioOnly || mode == SequencerMode.AudioAndEvents")]
-    [SerializeField] bool triggerAudio = true;
+    [ShowIf("@mode == SequencerMode.EventsOnly || mode == SequencerMode.AudioAndEvents")]
+    [Tooltip("Default tag for all registered events. Can be overridden per step. Used for filtering events.")]
+    [SerializeField]
+    string defaultEventTag = "";
+
+    [ShowIf("@mode == SequencerMode.AudioOnly || mode == SequencerMode.AudioAndEvents")] [SerializeField]
+    bool triggerAudio = true;
+
     [SerializeField] bool playOnStart = true;
     [SerializeField] bool loop = true;
     [SerializeField] bool canStartTransport;
@@ -44,9 +53,11 @@ public sealed class StepSequencer : MonoBehaviour
     [SerializeField] float standaloneBpm = 100f;
     [SerializeField] bool quantizeStart = true;
     [Min(0f)] [SerializeField] float startQuantizationBeats = 1f;
+
     [TitleGroup("Steps", order: 1)]
     [ListDrawerSettings(ShowIndexLabels = true, ListElementLabelName = "GetStepLabel", DefaultExpandedState = true)]
-    [SerializeField] List<SequenceStep> steps = new() { SequenceStep.Default() };
+    [SerializeField]
+    List<SequenceStep> steps = new() { SequenceStep.Default() };
 
     readonly List<RuntimeStep> runtimeSteps = new();
 
@@ -185,6 +196,7 @@ public sealed class StepSequencer : MonoBehaviour
                 tempoManager.CancelScheduledEvent(handle);
             }
         }
+
         scheduledEventHandles.Clear();
 
         waitingForTransport = false;
@@ -234,8 +246,8 @@ public sealed class StepSequencer : MonoBehaviour
         // Calculate when this step should trigger (in beats from start)
         double stepStartBeat = CalculateStepStartBeat(totalStepsScheduled);
 
-        // Register event for lookahead systems (visual/gameplay)
-        if (tempoManager != null)
+        // Register event for lookahead systems (visual/gameplay) - skip if event type is None
+        if (tempoManager != null && step.eventType != SequenceEventType.None)
         {
             string eventTypeString = step.eventType switch
             {
@@ -243,15 +255,17 @@ public sealed class StepSequencer : MonoBehaviour
                 SequenceEventType.SequenceEnd => "sequence_end",
                 _ => "sequence_next"
             };
-            tempoManager.RegisterScheduledEvent(stepStartBeat, this, eventTypeString, stepIndexInSequence);
-            Debug.Log($"[StepSequencer] Registered {eventTypeString} {stepIndexInSequence} at beat {stepStartBeat:F2}");
+
+            // Use per-step tag if specified, otherwise use default tag
+            string eventTag = !string.IsNullOrEmpty(step.eventTag) ? step.eventTag : defaultEventTag;
+
+            tempoManager.RegisterScheduledEvent(stepStartBeat, this, eventTypeString, stepIndexInSequence, eventTag);
+            Debug.Log(
+                $"[StepSequencer] Registered {eventTypeString} {stepIndexInSequence} at beat {stepStartBeat:F2} with tag '{eventTag}'");
         }
 
         // Schedule the step to trigger at the calculated beat (this handles audio)
-        var handle = tempoManager.ScheduleAtBeat(stepStartBeat, () =>
-        {
-            OnStepTriggered(stepIndexInSequence);
-        });
+        var handle = tempoManager.ScheduleAtBeat(stepStartBeat, () => { OnStepTriggered(stepIndexInSequence); });
 
         scheduledEventHandles.Add(handle);
         totalStepsScheduled++;
@@ -383,7 +397,8 @@ public sealed class StepSequencer : MonoBehaviour
                 sanitizedPitchFrequency,
                 sanitizedPitchSemitones,
                 sanitizedVelocity,
-                step.eventType));
+                step.eventType,
+                step.eventTag));
 
             EnsureUnityEvents(step);
         }
@@ -486,6 +501,7 @@ public sealed class StepSequencer : MonoBehaviour
         {
             tempoManager.OnTransportStarted -= OnTransportStarted;
         }
+
         StopSequence();
     }
 
@@ -514,14 +530,20 @@ public sealed class StepSequencer : MonoBehaviour
         }
     }
 
+    /**
+     * Determines when to begin playback based on quantization settings.
+     * If quantization is enabled, aligns start to the next beat boundary; otherwise starts immediately.
+     */
     void ScheduleOrStartImmediately()
     {
+        // Fallback: Start immediately if no tempo manager is available
         if (tempoManager == null)
         {
             BeginPlaybackAtBeat(0d);
             return;
         }
 
+        // Check if quantization is enabled and transport is running
         double currentBeat = tempoManager.CurrentBeat;
         bool canQuantize = quantizeStart && startQuantizationBeats > 0f && tempoManager.TransportRunning;
         if (!canQuantize)
@@ -530,8 +552,15 @@ public sealed class StepSequencer : MonoBehaviour
             return;
         }
 
+        // Calculate the nearest quantization boundary (round down to current quantized beat)
+        // quant: The quantization interval in beats (e.g., 1.0 = whole beats, 0.5 = half beats, 0.25 = quarter beats)
+        //        Clamped to minimum 1e-6 to prevent division by zero
         double quant = Math.Max(1e-6, startQuantizationBeats);
+        // cycles: How many complete quantization intervals have passed since beat 0
+        //         Example: if currentBeat=2.7 and quant=1.0, then cycles=2 (we've completed 2 full beats)
         double cycles = Math.Floor(currentBeat / quant);
+        // currentQuantizedBeat: The beat position of the most recent quantization boundary we've passed
+        //                       Example: if currentBeat=2.7 and quant=1.0, then currentQuantizedBeat=2.0
         double currentQuantizedBeat = cycles * quant;
 
         // If we're already at (or very close to) a quantization boundary, start immediately
@@ -541,7 +570,7 @@ public sealed class StepSequencer : MonoBehaviour
             return;
         }
 
-        // Otherwise, wait for the next quantization boundary
+        // Schedule playback to begin at the next quantization boundary
         double targetBeat = (cycles + 1d) * quant;
 
         startScheduled = true;
@@ -598,8 +627,13 @@ public sealed class StepSequencer : MonoBehaviour
         [Tooltip("Duration of this step in beats.")]
         public float durationBeats = 1f;
 
-        [Tooltip("Event type for this step. sequence_next = normal step, sequence_start = initialize visuals, sequence_end = cleanup visuals")]
+        [Tooltip(
+            "Event type for this step. None = no event registered, sequence_next = normal step, sequence_start = initialize visuals, sequence_end = cleanup visuals")]
         public SequenceEventType eventType = SequenceEventType.SequenceNext;
+
+        [ShowIf("@$root.mode != SequencerMode.AudioOnly && eventType != SequenceEventType.None")]
+        [Tooltip("Tag override for this step's event. If empty, uses the sequencer's default tag.")]
+        public string eventTag = "";
 
         // --- Sound Generator ---
         [ShowIf("@$root.mode != SequencerMode.EventsOnly")]
@@ -639,8 +673,7 @@ public sealed class StepSequencer : MonoBehaviour
         [Tooltip("UnityEvents that fire immediately when this step begins.")]
         public UnityEvent onStepStart = new();
 
-        [ShowIf("@$root.mode != SequencerMode.AudioOnly")]
-        [Tooltip("UnityEvents that fire when this step completes.")]
+        [ShowIf("@$root.mode != SequencerMode.AudioOnly")] [Tooltip("UnityEvents that fire when this step completes.")]
         public UnityEvent onStepEnd = new();
 
         public static SequenceStep Default()
@@ -693,18 +726,19 @@ public sealed class StepSequencer : MonoBehaviour
     /// </summary>
     readonly struct RuntimeStep
     {
-        public readonly SequenceStep source;      // Original step (for UnityEvents)
-        public readonly bool rest;                // Is this a rest (no sound)?
-        public readonly bool tieFromPrevious;     // Does this tie from the previous note?
-        public readonly float durationBeats;      // How long this step lasts
+        public readonly SequenceStep source; // Original step (for UnityEvents)
+        public readonly bool rest; // Is this a rest (no sound)?
+        public readonly bool tieFromPrevious; // Does this tie from the previous note?
+        public readonly float durationBeats; // How long this step lasts
         public readonly ISoundGenerator generator; // The sound generator to use
-        public readonly bool usePitch;            // Should pitch be set?
-        public readonly PitchMode pitchMode;      // How pitch is specified
-        public readonly string pitchName;         // Pitch as note name
-        public readonly float pitchFrequency;     // Pitch as Hz
-        public readonly float pitchSemitones;     // Pitch as semitone offset
-        public readonly int velocity;             // MIDI velocity (0-127)
+        public readonly bool usePitch; // Should pitch be set?
+        public readonly PitchMode pitchMode; // How pitch is specified
+        public readonly string pitchName; // Pitch as note name
+        public readonly float pitchFrequency; // Pitch as Hz
+        public readonly float pitchSemitones; // Pitch as semitone offset
+        public readonly int velocity; // MIDI velocity (0-127)
         public readonly SequenceEventType eventType; // Custom event type for this step
+        public readonly string eventTag; // Custom tag for this step's event
 
         public RuntimeStep(
             SequenceStep source,
@@ -718,7 +752,8 @@ public sealed class StepSequencer : MonoBehaviour
             float pitchFrequency,
             float pitchSemitones,
             int velocity,
-            SequenceEventType eventType)
+            SequenceEventType eventType,
+            string eventTag)
         {
             this.source = source;
             this.rest = rest;
@@ -732,13 +767,14 @@ public sealed class StepSequencer : MonoBehaviour
             this.pitchSemitones = pitchSemitones;
             this.velocity = velocity;
             this.eventType = eventType;
+            this.eventTag = eventTag;
         }
 
         public RuntimeStep WithTieFromPrevious(bool tieFromPrevious)
         {
             return new RuntimeStep(
                 source, rest, tieFromPrevious, durationBeats, generator,
-                usePitch, pitchMode, pitchName, pitchFrequency, pitchSemitones, velocity, eventType);
+                usePitch, pitchMode, pitchName, pitchFrequency, pitchSemitones, velocity, eventType, eventTag);
         }
     }
 }
