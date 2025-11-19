@@ -2072,7 +2072,7 @@ MonoBehaviour:
   playOnStart: 0
   loop: 1
   canStartTransport: 0
-  waitForTransport: 1
+  waitForTransport: 0
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
@@ -2166,8 +2166,10 @@ MonoBehaviour:
   - {fileID: 1875617109}
   - {fileID: 1589677472}
   - {fileID: 1054225034}
-  ringScaleDurationBeats: 1
-  ringShakeDurationBeats: 0.5
+  stepNextAnimationLookahead: 0.125
+  stepEndAnimationLookahead: 0.125
+  ringScaleDurationBeats: 0.25
+  ringShakeDurationBeats: 0.25
   ringShakeStrength: 0.1
   controllerCollapseDurationBeats: 0.25
   onSequenceComplete:
@@ -2188,7 +2190,6 @@ MonoBehaviour:
   tempoManager: {fileID: 1907658354}
   stepSequencer: {fileID: 197492698}
   eventTagFilter: 
-  staleEventThresholdBeats: 1
 --- !u!1 &266927355
 GameObject:
   m_ObjectHideFlags: 0
@@ -3207,6 +3208,8 @@ MonoBehaviour:
   - {fileID: 181729407}
   - {fileID: 1130039184}
   - {fileID: 1249241131}
+  stepNextAnimationLookahead: 0.25
+  stepEndAnimationLookahead: 0.25
   ringScaleDurationBeats: 0.25
   ringShakeDurationBeats: 0.5
   ringShakeStrength: 0.1
@@ -3229,7 +3232,6 @@ MonoBehaviour:
   tempoManager: {fileID: 1907658354}
   stepSequencer: {fileID: 0}
   eventTagFilter: 
-  staleEventThresholdBeats: 1
 --- !u!1 &555354317
 GameObject:
   m_ObjectHideFlags: 0
@@ -3866,6 +3868,8 @@ MonoBehaviour:
   - {fileID: 183114661}
   - {fileID: 1110259775}
   - {fileID: 331759373}
+  stepNextAnimationLookahead: 0.25
+  stepEndAnimationLookahead: 0.25
   ringScaleDurationBeats: 0.25
   ringShakeDurationBeats: 0.5
   ringShakeStrength: 0.1
@@ -3888,7 +3892,6 @@ MonoBehaviour:
   tempoManager: {fileID: 1907658354}
   stepSequencer: {fileID: 0}
   eventTagFilter: 
-  staleEventThresholdBeats: 1
 --- !u!1 &603558238
 GameObject:
   m_ObjectHideFlags: 0

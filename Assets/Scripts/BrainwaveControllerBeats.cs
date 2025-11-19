@@ -10,6 +10,12 @@ public class BrainwaveControllerBeats : MonoBehaviour
     [SerializeField] private bool fixedPosition;
     [SerializeField] private List<GameObject> rings = new();
 
+    [SerializeField, Min(0f), Tooltip("How early (in beats) to start the ring animation before a next event's beat time")]
+    private float stepNextAnimationLookahead = 0.25f;
+    
+    [SerializeField, Min(0f), Tooltip("How early (in beats) to start the ring animation before the last event's beat time")]
+    private float stepEndAnimationLookahead = 0.25f;
+    
     [SerializeField, Min(0f)]
     private float ringScaleDurationBeats = 0.25f;
 
@@ -31,9 +37,6 @@ public class BrainwaveControllerBeats : MonoBehaviour
 
     [SerializeField, Tooltip("Filter events by tag (optional - leave empty to receive all events)")]
     private string eventTagFilter = "";
-
-    [SerializeField, Min(0f), Tooltip("How many beats in the past to discard events as stale")]
-    private float staleEventThresholdBeats = 8f;
 
     private readonly List<Vector3> ringInitialScales = new();
     private readonly List<Tween> activeRingTweens = new();
@@ -79,8 +82,8 @@ public class BrainwaveControllerBeats : MonoBehaviour
 
         // Look BACK in time as well as forward to catch events that were scheduled but we missed
         // We need to look back by at least the animation duration to catch events we should react to
-        double lookbackBeats = ringScaleDurationBeats + ringShakeDurationBeats + 0.5;
-        double lookaheadBeats = ringScaleDurationBeats + ringShakeDurationBeats + 1.0;
+        double lookbackBeats = ringScaleDurationBeats + ringShakeDurationBeats + 2.0;
+        double lookaheadBeats = ringScaleDurationBeats + ringShakeDurationBeats + 2.0;
 
         double searchStartBeat = currentBeat - lookbackBeats;
         double searchWindowBeats = lookbackBeats + lookaheadBeats;
@@ -94,13 +97,7 @@ public class BrainwaveControllerBeats : MonoBehaviour
             searchWindowBeats,
             sourceFilter: sourceFilter,
             tagFilter: tagFilter);
-
-        // Clean up stale processed events
-        // We need to check which processed event IDs are still in the TempoManager's list
-        // Events older than staleEventThresholdBeats will be automatically cleaned by TempoManager
-        // But we should also clean up our processed list to prevent it from growing indefinitely
-        double staleThreshold = currentBeat - staleEventThresholdBeats;
-
+        
         // Collect IDs to clean up from TempoManager after processing
         var idsToCleanup = new List<Guid>();
 
@@ -109,49 +106,46 @@ public class BrainwaveControllerBeats : MonoBehaviour
         {
             // Skip if already processed
             if (processedEventIds.Contains(eventInfo.Id)) continue;
-
-            // Discard stale events that haven't been processed yet
-            if (eventInfo.BeatTime < staleThreshold)
-            {
-                Debug.LogWarning($"[BrainwaveController] Discarding stale event {eventInfo.EventType} at beat {eventInfo.BeatTime:F2} (current: {currentBeat:F2})");
-                processedEventIds.Add(eventInfo.Id); // Mark as processed so we don't warn again
-                idsToCleanup.Add(eventInfo.Id);
-                continue;
-            }
+            
+            // Capture the current sequence ID so the scheduled callback knows which sequence to complete
+            int sequenceIdToComplete = currentSequenceId;
 
             // Consume and process the event
             switch (eventInfo.EventType)
             {
                 case "sequence_start":
-                    Debug.Log($"[BrainwaveController] Processing sequence_start at beat {eventInfo.BeatTime:F2}, current beat: {currentBeat:F2}");
-                    // Schedule the sequence start to happen at the event's beat time
-                    double startDelay = Math.Max(0.001, eventInfo.BeatTime - currentBeat);
+                    // Calculate when to start the animation so it finishes on-beat
+                    double startAnimStartBeat = eventInfo.BeatTime - stepNextAnimationLookahead;
+                    double startDelay = Math.Max(0.001, startAnimStartBeat - currentBeat);
+
                     tempoManager.ScheduleBeatsFromNow(startDelay, () =>
                     {
                         BeginSequence(); // Start the sequence
-                        TriggerNextRingAnimation(); // Trigger the first ring animation
+                        TriggerNextRingAnimation(); // Start ring animation (will finish at eventInfo.BeatTime)
                     });
-                    Debug.Log($"[BrainwaveController] Scheduled BeginSequence + ring animation in {startDelay:F2} beats");
+                    Debug.Log($"[BrainwaveController] Current beat: {currentBeat:F2} | Scheduled BeginSequence + ring animation in {startDelay:F2} beats (animation will complete at beat {eventInfo.BeatTime:F2}) | Seq: {sequenceIdToComplete}");
                     processedEventIds.Add(eventInfo.Id);
                     idsToCleanup.Add(eventInfo.Id);
                     break;
 
                 case "sequence_end":
-                    Debug.Log($"[BrainwaveController] Processing sequence_end at beat {eventInfo.BeatTime:F2}, current beat: {currentBeat:F2}");
-                    // Capture the current sequence ID so the scheduled callback knows which sequence to complete
-                    int sequenceIdToComplete = currentSequenceId;
-                    double delay = Math.Max(0.001, eventInfo.BeatTime - currentBeat);
-                    tempoManager.ScheduleBeatsFromNow(delay, () => CompleteSequence(sequenceIdToComplete));
-                    Debug.Log($"[BrainwaveController] Scheduled CompleteSequence for sequence {sequenceIdToComplete} in {delay:F2} beats");
+                    
+                    // Calculate when to start the animation so it finishes on-beat
+                    double endAnimStartBeat = eventInfo.BeatTime - stepEndAnimationLookahead;
+                    double endDelay = Math.Max(0.001, endAnimStartBeat - currentBeat);
+                    
+                    tempoManager.ScheduleBeatsFromNow(endDelay, () => CompleteSequence(sequenceIdToComplete));
+                    Debug.Log($"[BrainwaveController] Current beat: {currentBeat:F2} | Scheduled CompleteSequence + ring animation in {endDelay:F2} beats (animation will complete at beat {eventInfo.BeatTime:F2}) | Seq: {sequenceIdToComplete}");
                     processedEventIds.Add(eventInfo.Id);
                     idsToCleanup.Add(eventInfo.Id);
                     break;
 
                 case "sequence_next":
-                    Debug.Log($"[BrainwaveController] Processing sequence_next at beat {eventInfo.BeatTime:F2}, current beat: {currentBeat:F2}");
-                    // Schedule the ring animation to happen at the event's beat time
+                    // Calculate when to start the animation so it finishes on-beat
                     // State checks (sequenceActive, nextRingIndex) happen when the callback executes
-                    double nextDelay = Math.Max(0.001, eventInfo.BeatTime - currentBeat);
+                    double nextAnimStartBeat = eventInfo.BeatTime - stepNextAnimationLookahead;
+                    double nextDelay = Math.Max(0.001, nextAnimStartBeat - currentBeat);
+
                     tempoManager.ScheduleBeatsFromNow(nextDelay, () =>
                     {
                         // Check state at execution time, not lookahead time
@@ -161,10 +155,11 @@ public class BrainwaveControllerBeats : MonoBehaviour
                             return;
                         }
 
-                        // Trigger the ring animation now (at the correct beat time)
+                        // Start ring animation now (will finish at eventInfo.BeatTime)
                         TriggerNextRingAnimation();
                     });
-                    Debug.Log($"[BrainwaveController] Scheduled sequence_next ring animation in {nextDelay:F2} beats");
+                    Debug.Log($"[BrainwaveController] Current beat: {currentBeat:F2} | Scheduled sequence_next + ring animation in {nextDelay:F2} beats (animation will complete at beat {eventInfo.BeatTime:F2})  | Seq: {sequenceIdToComplete}");
+                    
                     processedEventIds.Add(eventInfo.Id);
                     idsToCleanup.Add(eventInfo.Id);
                     break;
@@ -283,11 +278,12 @@ public class BrainwaveControllerBeats : MonoBehaviour
      */
     public void CompleteSequence(int sequenceId)
     {
-        if (sequenceId != currentSequenceId)
-        {
-            Debug.Log($"[BrainwaveController] Ignoring CompleteSequence for old sequence {sequenceId} (current: {currentSequenceId})");
-            return;
-        }
+        // Commenting out - I don't think we need to track sequence ID like this.
+        // if (sequenceId != currentSequenceId)
+        // {
+            // Debug.Log($"[BrainwaveController] Ignoring CompleteSequence for old sequence {sequenceId} (current: {currentSequenceId})");
+            // return;
+        // }
 
         if (!sequenceActive)
         {
