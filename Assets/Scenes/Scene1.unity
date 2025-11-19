@@ -2064,11 +2064,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencerEvents
-  mode: 2
+  mode: 1
   tempoManager: {fileID: 1907658354}
   soundGenerator: {fileID: 0}
   triggerAudio: 1
-  playOnStart: 1
+  playOnStart: 0
   loop: 1
   canStartTransport: 0
   waitForTransport: 1
@@ -2078,9 +2078,10 @@ MonoBehaviour:
   steps:
   - rest: 1
     tieFromPrevious: 0
-    durationBeats: 0.5
+    durationBeats: 1
+    eventType: 1
     soundGenerator: {fileID: 0}
-    usePitch: 1
+    usePitch: 0
     pitchMode: 0
     pitchName: A4
     pitchFrequency: 440
@@ -2088,39 +2089,16 @@ MonoBehaviour:
     velocity: 100
     onStepStart:
       m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 197492699}
-          m_TargetAssemblyTypeName: BrainwaveControllerBeats, Assembly-CSharp
-          m_MethodName: BeginSequence
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 1
-          m_CallState: 2
-        - m_Target: {fileID: 197492699}
-          m_TargetAssemblyTypeName: BrainwaveControllerBeats, Assembly-CSharp
-          m_MethodName: NextRing
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 1
-          m_CallState: 2
+        m_Calls: []
     onStepEnd:
       m_PersistentCalls:
         m_Calls: []
   - rest: 1
     tieFromPrevious: 0
-    durationBeats: 0.5
+    durationBeats: 1
+    eventType: 0
     soundGenerator: {fileID: 0}
-    usePitch: 1
+    usePitch: 0
     pitchMode: 0
     pitchName: C5
     pitchFrequency: 440
@@ -2128,27 +2106,16 @@ MonoBehaviour:
     velocity: 100
     onStepStart:
       m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 197492699}
-          m_TargetAssemblyTypeName: BrainwaveControllerBeats, Assembly-CSharp
-          m_MethodName: NextRing
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 1
-          m_CallState: 2
+        m_Calls: []
     onStepEnd:
       m_PersistentCalls:
         m_Calls: []
   - rest: 1
     tieFromPrevious: 0
-    durationBeats: 0.5
+    durationBeats: 1
+    eventType: 0
     soundGenerator: {fileID: 0}
-    usePitch: 1
+    usePitch: 0
     pitchMode: 0
     pitchName: E5
     pitchFrequency: 440
@@ -2156,27 +2123,16 @@ MonoBehaviour:
     velocity: 100
     onStepStart:
       m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 197492699}
-          m_TargetAssemblyTypeName: BrainwaveControllerBeats, Assembly-CSharp
-          m_MethodName: NextRing
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 1
-          m_CallState: 2
+        m_Calls: []
     onStepEnd:
       m_PersistentCalls:
         m_Calls: []
   - rest: 1
     tieFromPrevious: 0
-    durationBeats: 0.5
+    durationBeats: 1
+    eventType: 2
     soundGenerator: {fileID: 0}
-    usePitch: 1
+    usePitch: 0
     pitchMode: 0
     pitchName: A5
     pitchFrequency: 440
@@ -2184,19 +2140,7 @@ MonoBehaviour:
     velocity: 100
     onStepStart:
       m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 197492699}
-          m_TargetAssemblyTypeName: BrainwaveControllerBeats, Assembly-CSharp
-          m_MethodName: CompleteSequence
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 1
-          m_CallState: 2
+        m_Calls: []
     onStepEnd:
       m_PersistentCalls:
         m_Calls: []
@@ -2217,7 +2161,7 @@ MonoBehaviour:
   - {fileID: 1875617109}
   - {fileID: 1589677472}
   - {fileID: 1054225034}
-  ringScaleDurationBeats: 0.125
+  ringScaleDurationBeats: 1
   ringShakeDurationBeats: 0.5
   ringShakeStrength: 0.1
   controllerCollapseDurationBeats: 0.25
@@ -2237,6 +2181,7 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   tempoManager: {fileID: 1907658354}
+  stepSequencer: {fileID: 197492698}
 --- !u!1 &266927355
 GameObject:
   m_ObjectHideFlags: 0
@@ -2900,6 +2845,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 0.5
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -2940,6 +2886,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 0.5
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -2968,6 +2915,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 0.5
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -2996,6 +2944,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 0.5
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -3266,6 +3215,7 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   tempoManager: {fileID: 1907658354}
+  stepSequencer: {fileID: 0}
 --- !u!1 &555354317
 GameObject:
   m_ObjectHideFlags: 0
@@ -3693,6 +3643,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 0.5
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -3733,6 +3684,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 0.5
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -3761,6 +3713,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 0.5
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -3789,6 +3742,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 0.5
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -3913,6 +3867,7 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   tempoManager: {fileID: 1907658354}
+  stepSequencer: {fileID: 0}
 --- !u!1 &603558238
 GameObject:
   m_ObjectHideFlags: 0
@@ -6261,6 +6216,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 0.5
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -6469,6 +6425,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 4
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -6497,6 +6454,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 4
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0
@@ -7506,7 +7464,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1431861827}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
@@ -7526,6 +7484,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 1
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 0
     pitchMode: 0
@@ -7554,6 +7513,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 1
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 0
     pitchMode: 0
@@ -9073,6 +9033,7 @@ MonoBehaviour:
   - rest: 0
     tieFromPrevious: 0
     durationBeats: 1
+    eventType: 0
     soundGenerator: {fileID: 0}
     usePitch: 1
     pitchMode: 0

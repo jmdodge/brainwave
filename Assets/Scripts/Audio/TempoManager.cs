@@ -92,6 +92,11 @@ public sealed class TempoManager : MonoBehaviour
     [PropertyOrder(15)]
     int ScheduledEventCount => scheduledEvents.Count;
 
+    [TitleGroup("Runtime State")]
+    [ShowInInspector, ReadOnly, LabelText("Registered Events")]
+    [PropertyOrder(16)]
+    int RegisteredEventCount => registeredEvents.Count;
+
     double secondsPerBeat;
     double beatZeroDspTime;
     double transportStartDspTime;
@@ -121,6 +126,57 @@ public sealed class TempoManager : MonoBehaviour
         public double DspTime;
         public Action Callback;
     }
+
+    /**
+     * Metadata for registered events that can be queried by lookahead systems.
+     * This allows visual/gameplay systems to see what's coming up and react in advance.
+     *
+     * Example: A StepSequencer registers an event at beat 4.0. A visual controller queries
+     * upcoming events and sees this event at beat 3.5, giving it 0.5 beats to prepare an animation
+     * that completes exactly when the audio plays at beat 4.0.
+     */
+    public sealed class RegisteredEventInfo
+    {
+        /// <summary>
+        /// The absolute beat time when this event will occur (e.g., 4.0, 8.5).
+        /// This is the same beat index used by ScheduleAtBeat().
+        /// Example: If an event is scheduled at beat 16.0, BeatTime = 16.0
+        /// </summary>
+        public double BeatTime { get; internal set; }
+
+        /// <summary>
+        /// The object that registered this event (typically the component that scheduled it).
+        /// Used for filtering events by source.
+        /// Example: A StepSequencer passes 'this' so listeners can filter to only that sequencer's events.
+        /// </summary>
+        public object Source { get; internal set; }
+
+        /// <summary>
+        /// A string identifying the type/category of event.
+        /// Listeners can filter by this to only react to specific event types.
+        ///
+        /// Common event types:
+        /// - "sequence_start": Initialize visuals/gameplay before sequence begins
+        /// - "sequence_next": Normal step trigger (contains step index in Payload)
+        /// - "sequence_end": Cleanup visuals/gameplay after sequence completes
+        /// - "note_on", "note_off": MIDI-style note events
+        /// - "beat_marker", "bar_marker": Timing markers
+        /// - Custom types: Any string your system needs
+        /// </summary>
+        public string EventType { get; internal set; }
+
+        /// <summary>
+        /// Optional additional data about this event.
+        /// Example: The step index (int), note pitch (float), or any custom data object.
+        /// </summary>
+        public object Payload { get; internal set; }
+    }
+
+    /// <summary>
+    /// List of registered events that systems can query for lookahead.
+    /// Events are automatically cleaned up after they pass.
+    /// </summary>
+    readonly List<RegisteredEventInfo> registeredEvents = new();
 
     /**
      * Current tempo in beats per minute.
@@ -217,6 +273,7 @@ public sealed class TempoManager : MonoBehaviour
 
         DispatchBeats(dspNow);
         DispatchScheduledEvents(dspNow);
+        CleanupPastRegisteredEvents(dspNow);
     }
 
     /**
@@ -366,6 +423,83 @@ public sealed class TempoManager : MonoBehaviour
     }
 
     /**
+     * Registers an event for lookahead querying by visual/gameplay systems.
+     * Registered events are automatically cleaned up after they pass.
+     *
+     * This does NOT schedule a callback - it just makes the event queryable.
+     * If you want a callback, use ScheduleAtBeat() in addition to this.
+     *
+     * <param name="beatTime">The absolute beat time when this event occurs (e.g., 4.0, 16.5)</param>
+     * <param name="source">The object registering this event (typically 'this'). Used for filtering.</param>
+     * <param name="eventType">A string identifying the event type (e.g., "step_trigger", "note_on")</param>
+     * <param name="payload">Optional data about the event (e.g., step index, note pitch, etc.)</param>
+     *
+     * Example:
+     * // In a StepSequencer, when scheduling step 5 at beat 8.0:
+     * tempoManager.RegisterScheduledEvent(8.0, this, "step_trigger", 5);
+     *
+     * // Later, a visual system queries:
+     * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, 1.0f);
+     * // Returns events between currentBeat and currentBeat + 1.0
+     */
+    public void RegisterScheduledEvent(double beatTime, object source, string eventType, object payload = null)
+    {
+        var eventInfo = new RegisteredEventInfo
+        {
+            BeatTime = beatTime,
+            Source = source,
+            EventType = eventType,
+            Payload = payload
+        };
+
+        registeredEvents.Add(eventInfo);
+    }
+
+    /**
+     * Queries upcoming registered events within a lookahead window.
+     * Use this to see what events are coming up so you can prepare/react in advance.
+     *
+     * <param name="fromBeat">The starting beat time to search from (typically CurrentBeat)</param>
+     * <param name="lookaheadBeats">How many beats ahead to search (e.g., 0.5 = half a beat ahead)</param>
+     * <param name="sourceFilter">Optional: only return events from this source object (e.g., a specific StepSequencer)</param>
+     * <returns>List of events occurring between fromBeat and fromBeat + lookaheadBeats</returns>
+     *
+     * Example 1 - Query all events in the next 1 beat:
+     * double currentBeat = tempoManager.CurrentBeat; // e.g., 3.75
+     * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, 1.0);
+     * // Returns all events between beat 3.75 and 4.75
+     *
+     * Example 2 - Query events from a specific sequencer:
+     * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, 0.5, myStepSequencer);
+     * // Returns only events from myStepSequencer that occur in the next 0.5 beats
+     *
+     * Example 3 - Prepare animations to finish on-beat:
+     * double animationDuration = 0.5; // beats
+     * var upcoming = tempoManager.GetUpcomingEvents(currentBeat, animationDuration);
+     * foreach (var evt in upcoming) {
+     *     // Start animation now so it finishes at evt.BeatTime
+     *     double startDelay = evt.BeatTime - animationDuration - currentBeat;
+     *     ScheduleAnimation(startDelay);
+     * }
+     */
+    public List<RegisteredEventInfo> GetUpcomingEvents(double fromBeat, double lookaheadBeats, object sourceFilter = null)
+    {
+        double endBeat = fromBeat + lookaheadBeats;
+        var results = new List<RegisteredEventInfo>();
+
+        foreach (var eventInfo in registeredEvents)
+        {
+            if (eventInfo.BeatTime < fromBeat) continue;
+            if (eventInfo.BeatTime > endBeat) continue;
+            if (sourceFilter != null && eventInfo.Source != sourceFilter) continue;
+
+            results.Add(eventInfo);
+        }
+
+        return results;
+    }
+
+    /**
      * Calculates the initial beat duration and anchor.
      */
     void InitialiseTempo()
@@ -442,6 +576,24 @@ public sealed class TempoManager : MonoBehaviour
         }
 
         scheduledEvents.Sort((a, b) => a.DspTime.CompareTo(b.DspTime));
+    }
+
+    /**
+     * Removes registered events that have already passed (with a small buffer to avoid premature cleanup).
+     * Called automatically in Update() to prevent the list from growing indefinitely.
+     *
+     * Events are kept for 0.1 beats after they pass to ensure any last-minute queries can still see them.
+     */
+    void CleanupPastRegisteredEvents(double dspNow)
+    {
+        if (registeredEvents.Count == 0) return;
+
+        double currentBeat = GetBeatAtDsp(dspNow);
+        // Keep a small buffer (0.1 beats) to avoid cleaning up events that are about to fire
+        // Example: If currentBeat = 5.0, we remove events before beat 4.9
+        double cleanupBeat = currentBeat - 0.1;
+
+        registeredEvents.RemoveAll(evt => evt.BeatTime < cleanupBeat);
     }
 
     /**

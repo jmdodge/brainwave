@@ -4,6 +4,13 @@ using UnityEngine;
 using UnityEngine.Events;
 using Sirenix.OdinInspector;
 
+public enum SequenceEventType
+{
+    SequenceNext,
+    SequenceStart,
+    SequenceEnd
+}
+
 [AddComponentMenu("Audio/Step Sequencer")]
 public sealed class StepSequencer : MonoBehaviour
 {
@@ -227,7 +234,20 @@ public sealed class StepSequencer : MonoBehaviour
         // Calculate when this step should trigger (in beats from start)
         double stepStartBeat = CalculateStepStartBeat(totalStepsScheduled);
 
-        // Schedule the step to trigger at the calculated beat
+        // Register event for lookahead systems (visual/gameplay)
+        if (tempoManager != null)
+        {
+            string eventTypeString = step.eventType switch
+            {
+                SequenceEventType.SequenceStart => "sequence_start",
+                SequenceEventType.SequenceEnd => "sequence_end",
+                _ => "sequence_next"
+            };
+            tempoManager.RegisterScheduledEvent(stepStartBeat, this, eventTypeString, stepIndexInSequence);
+            Debug.Log($"[StepSequencer] Registered {eventTypeString} {stepIndexInSequence} at beat {stepStartBeat:F2}");
+        }
+
+        // Schedule the step to trigger at the calculated beat (this handles audio)
         var handle = tempoManager.ScheduleAtBeat(stepStartBeat, () =>
         {
             OnStepTriggered(stepIndexInSequence);
@@ -362,7 +382,8 @@ public sealed class StepSequencer : MonoBehaviour
                 sanitizedPitchName,
                 sanitizedPitchFrequency,
                 sanitizedPitchSemitones,
-                sanitizedVelocity));
+                sanitizedVelocity,
+                step.eventType));
 
             EnsureUnityEvents(step);
         }
@@ -577,6 +598,9 @@ public sealed class StepSequencer : MonoBehaviour
         [Tooltip("Duration of this step in beats.")]
         public float durationBeats = 1f;
 
+        [Tooltip("Event type for this step. sequence_next = normal step, sequence_start = initialize visuals, sequence_end = cleanup visuals")]
+        public SequenceEventType eventType = SequenceEventType.SequenceNext;
+
         // --- Sound Generator ---
         [ShowIf("@$root.mode != SequencerMode.EventsOnly")]
         [Tooltip("Sound generator to use for this step. If null, uses the sequencer's default generator.")]
@@ -680,6 +704,7 @@ public sealed class StepSequencer : MonoBehaviour
         public readonly float pitchFrequency;     // Pitch as Hz
         public readonly float pitchSemitones;     // Pitch as semitone offset
         public readonly int velocity;             // MIDI velocity (0-127)
+        public readonly SequenceEventType eventType; // Custom event type for this step
 
         public RuntimeStep(
             SequenceStep source,
@@ -692,7 +717,8 @@ public sealed class StepSequencer : MonoBehaviour
             string pitchName,
             float pitchFrequency,
             float pitchSemitones,
-            int velocity)
+            int velocity,
+            SequenceEventType eventType)
         {
             this.source = source;
             this.rest = rest;
@@ -705,13 +731,14 @@ public sealed class StepSequencer : MonoBehaviour
             this.pitchFrequency = pitchFrequency;
             this.pitchSemitones = pitchSemitones;
             this.velocity = velocity;
+            this.eventType = eventType;
         }
 
         public RuntimeStep WithTieFromPrevious(bool tieFromPrevious)
         {
             return new RuntimeStep(
                 source, rest, tieFromPrevious, durationBeats, generator,
-                usePitch, pitchMode, pitchName, pitchFrequency, pitchSemitones, velocity);
+                usePitch, pitchMode, pitchName, pitchFrequency, pitchSemitones, velocity, eventType);
         }
     }
 }
