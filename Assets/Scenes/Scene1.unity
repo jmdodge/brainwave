@@ -2066,7 +2066,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencerEvents
   mode: 2
   tempoManager: {fileID: 1907658354}
-  soundWaveGenerator: {fileID: 0}
+  soundGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -2887,7 +2887,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencerEvents
   mode: 2
   tempoManager: {fileID: 1907658354}
-  soundWaveGenerator: {fileID: 0}
+  soundGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 0
   loop: 1
@@ -3680,7 +3680,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencerEvents
   mode: 2
   tempoManager: {fileID: 1907658354}
-  soundWaveGenerator: {fileID: 0}
+  soundGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 0
   loop: 1
@@ -6248,7 +6248,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: GameScripts::StepSequencerEvents
   mode: 2
   tempoManager: {fileID: 0}
-  soundWaveGenerator: {fileID: 0}
+  soundGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -6456,7 +6456,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StepSequencerEvents
   mode: 2
   tempoManager: {fileID: 0}
-  soundWaveGenerator: {fileID: 0}
+  soundGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -7511,9 +7511,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79ff19fe2aebfd740b7c586113267983, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameScripts::StepSequencerEvents
-  mode: 1
+  mode: 0
   tempoManager: {fileID: 0}
-  soundWaveGenerator: {fileID: 1431861830}
+  soundGenerator: {fileID: 1431861830}
   triggerAudio: 1
   playOnStart: 1
   loop: 1
@@ -7527,7 +7527,7 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 1
     soundGenerator: {fileID: 0}
-    usePitch: 1
+    usePitch: 0
     pitchMode: 0
     pitchName: A4
     pitchFrequency: 440
@@ -7555,12 +7555,12 @@ MonoBehaviour:
     tieFromPrevious: 0
     durationBeats: 1
     soundGenerator: {fileID: 0}
-    usePitch: 1
+    usePitch: 0
     pitchMode: 0
     pitchName: A4
     pitchFrequency: 440
     pitchSemitones: 0
-    velocity: 100
+    velocity: 50
     onStepStart:
       m_PersistentCalls:
         m_Calls: []
@@ -9060,7 +9060,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: GameScripts::StepSequencerEvents
   mode: 2
   tempoManager: {fileID: 1907658354}
-  soundWaveGenerator: {fileID: 1624833214}
+  soundGenerator: {fileID: 0}
   triggerAudio: 1
   playOnStart: 0
   loop: 1

@@ -26,7 +26,7 @@ public sealed class StepSequencer : MonoBehaviour
 
     [ShowIf("@mode == SequencerMode.AudioOnly || mode == SequencerMode.AudioAndEvents")]
     [Tooltip("Default sound generator for steps that don't specify their own.")]
-    [SerializeField] MonoBehaviour soundWaveGenerator; // ISoundGenerator interface
+    [SerializeField] MonoBehaviour soundGenerator; // ISoundGenerator interface
 
     [ShowIf("@mode == SequencerMode.AudioOnly || mode == SequencerMode.AudioAndEvents")]
     [SerializeField] bool triggerAudio = true;
@@ -91,7 +91,7 @@ public sealed class StepSequencer : MonoBehaviour
     void OnEnable()
     {
         if (tempoManager == null) tempoManager = FindAnyObjectByType<TempoManager>();
-        if (triggerAudio && soundWaveGenerator == null) soundWaveGenerator = GetComponent<SoundWaveGenerator>();
+        if (triggerAudio && soundGenerator == null) soundGenerator = GetComponent<ISoundGenerator>() as MonoBehaviour;
 
         if (tempoManager != null)
         {
@@ -139,12 +139,12 @@ public sealed class StepSequencer : MonoBehaviour
             return;
         }
 
-        if (triggerAudio && soundWaveGenerator == null)
+        if (triggerAudio && soundGenerator == null)
         {
-            soundWaveGenerator = GetComponent<SoundWaveGenerator>();
-            if (soundWaveGenerator == null)
+            soundGenerator = GetComponent<ISoundGenerator>() as MonoBehaviour;
+            if (soundGenerator == null)
             {
-                Debug.LogWarning("StepSequencer is set to trigger audio but has no SineWaveGenerator reference.",
+                Debug.LogWarning("StepSequencer is set to trigger audio but has no ISoundGenerator component.",
                     this);
             }
         }
@@ -342,7 +342,7 @@ public sealed class StepSequencer : MonoBehaviour
             int sanitizedVelocity = Mathf.Clamp(step.velocity, 0, 127);
 
             // Resolve sound generator (step's generator or sequencer's default)
-            MonoBehaviour generatorComponent = step.soundGenerator != null ? step.soundGenerator : soundWaveGenerator;
+            MonoBehaviour generatorComponent = step.soundGenerator != null ? step.soundGenerator : soundGenerator;
             ISoundGenerator resolvedGenerator = generatorComponent as ISoundGenerator;
 
             if (resolvedGenerator == null && !step.rest && triggerAudio)
