@@ -77,10 +77,15 @@ namespace Gameplay
             if (currentlyHeldMolecule != null) return;
 
             Vector2 mousePos = raycastCamera.ScreenToWorldPoint(Input.mousePosition);
-            RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero, Mathf.Infinity, moleculeLayer);
 
-            if (hit.collider != null)
+            // Get ALL hits at this position, not just the first one
+            RaycastHit2D[] hits = Physics2D.RaycastAll(mousePos, Vector2.zero, Mathf.Infinity, moleculeLayer);
+
+            // Try to find a PickableMolecule in the hits
+            foreach (RaycastHit2D hit in hits)
             {
+                if (hit.collider == null) continue;
+
                 PickableMolecule molecule = hit.collider.GetComponent<PickableMolecule>();
                 if (molecule != null)
                 {
@@ -92,6 +97,7 @@ namespace Gameplay
 
                     currentlyHeldMolecule = molecule;
                     molecule.Pickup();
+                    return; // Found a molecule, stop searching
                 }
             }
         }
