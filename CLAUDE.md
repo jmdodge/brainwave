@@ -1,6 +1,3 @@
----
-alwaysApply: true
----
 This is a Unity 6.2 project.
 Our custom c# code is found in Assets/Scripts
 The project is a 2D game that is still in early development that is experimenting with musical and rhythm based gameplay mechanics.
