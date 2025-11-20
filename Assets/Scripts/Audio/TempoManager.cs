@@ -21,6 +21,9 @@ public sealed class TempoManager : MonoBehaviour
     [TitleGroup("Tempo Settings", order: 0)] [Min(1f)] [OnValueChanged(nameof(OnBpmChanged))] [SerializeField]
     float bpm = 100f;
 
+    [TitleGroup("Tempo Settings")] [Tooltip("Start transport automatically when scene loads")] [SerializeField]
+    bool playOnStart = false;
+
     [TitleGroup("Tempo Settings")] [Tooltip("Time signature numerator (e.g. 4 in 4/4 time)")] [Min(1)] [SerializeField]
     int beatsPerBar = 4;
 
@@ -266,6 +269,15 @@ public sealed class TempoManager : MonoBehaviour
     void Awake()
     {
         InitialiseTempo();
+    }
+
+    void Start()
+    {
+        // Auto-start transport if enabled
+        if (playOnStart)
+        {
+            StartTransport();
+        }
     }
 
     /**

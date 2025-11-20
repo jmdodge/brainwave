@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using Sirenix.OdinInspector;
 
@@ -37,6 +38,18 @@ namespace Gameplay
         [Tooltip("Core/center particle color")]
         [ColorUsage(true, true)]
         [SerializeField] Color coreColor = new Color(1f, 0.5f, 1f, 1f);
+
+        [TitleGroup("Rendering")]
+        [Tooltip("Sorting layer name for the particle sprites")]
+        [ValueDropdown("GetSortingLayerNames")]
+        [SerializeField] string sortingLayerName = "Default";
+
+        [HideInInspector]
+        [SerializeField] int sortingLayerID = 0;
+
+        [TitleGroup("Rendering")]
+        [Tooltip("Order in layer (higher values render on top)")]
+        [SerializeField] int sortingOrder = 0;
 
         [TitleGroup("Animation")]
         [Tooltip("Base rotation speed (degrees per second)")]
@@ -162,7 +175,10 @@ namespace Gameplay
                 // Add sprite renderer
                 SpriteRenderer sr = particle.AddComponent<SpriteRenderer>();
                 sr.sprite = CreateCircleSprite();
-                sr.sortingOrder = 1;
+
+                // Apply rendering settings
+                sr.sortingLayerID = sortingLayerID;
+                sr.sortingOrder = sortingOrder;
 
                 // Set color (first particle is core for some patterns)
                 bool isCore = i == 0 && pattern != MoleculePattern.Linear && pattern != MoleculePattern.DoubleBond;
@@ -304,8 +320,23 @@ namespace Gameplay
                 resolution / 2f);
         }
 
+        IEnumerable GetSortingLayerNames()
+        {
+            return System.Array.ConvertAll(SortingLayer.layers, l => l.name);
+        }
+
         void OnValidate()
         {
+            // Sync sorting layer name to ID
+            sortingLayerID = SortingLayer.NameToID(sortingLayerName);
+
+            // Validate layer exists, reset to Default if not
+            if (!System.Array.Exists(SortingLayer.layers, l => l.name == sortingLayerName))
+            {
+                sortingLayerName = "Default";
+                sortingLayerID = 0;
+            }
+
             if (Application.isPlaying && particles != null)
             {
                 GenerateMolecule();
