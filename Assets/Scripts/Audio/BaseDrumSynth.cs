@@ -49,12 +49,21 @@ public abstract class BaseDrumSynth : MonoBehaviour, ISoundGenerator
     private double b0, b1, b2, a1, a2;
     private double z1, z2;
 
+    // Stereo panning support (optional, auto-detected)
+    private AudioSource audioSource;
+    private Audio.AudioPanner2D panner;
+    private float cachedPan; // Thread-safe cache of panStereo value
+
     protected virtual void Awake()
     {
         sampleRate = AudioSettings.outputSampleRate;
         isPlaying = false;
         envelopePhase = 0.0;
         envelopeValue = 0.0;
+
+        // Auto-detect AudioSource and optional AudioPanner2D for stereo positioning
+        audioSource = GetComponent<AudioSource>();
+        panner = GetComponent<Audio.AudioPanner2D>();
 
         if (useFilter)
         {
@@ -73,6 +82,15 @@ public abstract class BaseDrumSynth : MonoBehaviour, ISoundGenerator
         z1 = z2 = 0.0;
 
         OnDrumDisable();
+    }
+
+    void Update()
+    {
+        // Cache pan value on main thread for use in audio thread
+        if (panner != null && audioSource != null)
+        {
+            cachedPan = audioSource.panStereo;
+        }
     }
 
     /// <summary>
@@ -211,8 +229,26 @@ public abstract class BaseDrumSynth : MonoBehaviour, ISoundGenerator
             double processedSample = useFilter ? ProcessFilter(rawSample) : rawSample;
             float sampleValue = (float)processedSample;
 
-            for (int ch = 0; ch < channels; ch++)
-                data[i + ch] = sampleValue;
+            // Apply stereo panning if AudioPanner2D is present
+            if (panner != null && audioSource != null && channels == 2)
+            {
+                // Use cached pan value (updated on main thread)
+                // pan: -1 (left) to 1 (right)
+                float pan = cachedPan;
+
+                // Equal-power panning for smooth stereo imaging
+                float leftGain = Mathf.Sqrt((1f - pan) / 2f);
+                float rightGain = Mathf.Sqrt((1f + pan) / 2f);
+
+                data[i] = sampleValue * leftGain;      // Left channel
+                data[i + 1] = sampleValue * rightGain; // Right channel
+            }
+            else
+            {
+                // No panner or mono output - write same value to all channels
+                for (int ch = 0; ch < channels; ch++)
+                    data[i + ch] = sampleValue;
+            }
         }
     }
 

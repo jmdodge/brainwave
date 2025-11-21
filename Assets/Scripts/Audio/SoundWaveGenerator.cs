@@ -34,6 +34,11 @@ public class SoundWaveGenerator : MonoBehaviour, ISoundGenerator
     double b0, b1, b2, a1, a2;
     double z1, z2;
 
+    // Stereo panning support (optional, auto-detected)
+    AudioSource audioSource;
+    Audio.AudioPanner2D panner;
+    float cachedPan; // Thread-safe cache of panStereo value
+
     bool gateRequested;
     volatile bool autoReleasePending;
     int retriggerPending;
@@ -57,6 +62,11 @@ public class SoundWaveGenerator : MonoBehaviour, ISoundGenerator
         cachedUseNoteInput = useNoteInput;
         cachedNoteInput = note;
         cachedFrequencyValue = frequency;
+
+        // Auto-detect AudioSource and optional AudioPanner2D for stereo positioning
+        audioSource = GetComponent<AudioSource>();
+        panner = GetComponent<Audio.AudioPanner2D>();
+
         RefreshFrequencyCache(true);
         UpdateFilterCoefficients(sampleRate, cutoff, resonance);
     }
@@ -76,6 +86,15 @@ public class SoundWaveGenerator : MonoBehaviour, ISoundGenerator
         cachedNoteInput = note;
         cachedFrequencyValue = frequency;
         RefreshFrequencyCache(true);
+    }
+
+    void Update()
+    {
+        // Cache pan value on main thread for use in audio thread
+        if (panner != null && audioSource != null)
+        {
+            cachedPan = audioSource.panStereo;
+        }
     }
 
     void OnAudioFilterRead(float[] data, int channels)
@@ -121,8 +140,27 @@ public class SoundWaveGenerator : MonoBehaviour, ISoundGenerator
             double rawSample = amplitude * env * GenerateSample(phase);
             double filteredSample = ProcessFilter(rawSample);
             float sampleValue = (float)filteredSample;
-            for (int ch = 0; ch < channels; ch++)
-                data[i + ch] = sampleValue;
+
+            // Apply stereo panning if AudioPanner2D is present
+            if (panner != null && audioSource != null && channels == 2)
+            {
+                // Use cached pan value (updated on main thread)
+                // pan: -1 (left) to 1 (right)
+                float pan = cachedPan;
+
+                // Equal-power panning for smooth stereo imaging
+                float leftGain = Mathf.Sqrt((1f - pan) / 2f);
+                float rightGain = Mathf.Sqrt((1f + pan) / 2f);
+
+                data[i] = sampleValue * leftGain;      // Left channel
+                data[i + 1] = sampleValue * rightGain; // Right channel
+            }
+            else
+            {
+                // No panner or mono output - write same value to all channels
+                for (int ch = 0; ch < channels; ch++)
+                    data[i + ch] = sampleValue;
+            }
 
             phase += increment;
             phase %= tau;    // wrap to avoid overflow
