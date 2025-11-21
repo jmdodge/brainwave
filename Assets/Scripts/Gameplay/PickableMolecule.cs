@@ -21,7 +21,7 @@ namespace Gameplay
 
         [TitleGroup("Visuals")]
         [Tooltip("Optional molecule visualizer for procedural animations")]
-        [SerializeField] MoleculeVisualizer moleculeVisualizer;
+        [SerializeField] MonoBehaviour moleculeVisualizerComponent;
 
         [TitleGroup("Movement")]
         [Tooltip("Speed at which molecule springs toward cursor")]
@@ -70,6 +70,8 @@ namespace Gameplay
         public string MoleculeId => moleculeId;
         public bool IsPickedUp => isPickedUp;
         public bool IsPlaced => isPlaced;
+        
+        IPickable moleculeVisualizer => moleculeVisualizerComponent as IPickable;
 
         void Awake()
         {
@@ -87,9 +89,18 @@ namespace Gameplay
                 stepSequencer = GetComponent<StepSequencer>();
             }
 
-            if (moleculeVisualizer == null)
+            if (moleculeVisualizerComponent == null)
             {
-                moleculeVisualizer = GetComponentInChildren<MoleculeVisualizer>();
+                // Try to find any component that implements IPickable
+                var visualizers = GetComponentsInChildren<MonoBehaviour>();
+                foreach (var component in visualizers)
+                {
+                    if (component is IPickable)
+                    {
+                        moleculeVisualizerComponent = component;
+                        break;
+                    }
+                }
             }
         }
 
@@ -255,19 +266,67 @@ namespace Gameplay
             }
 
             // Auto-find molecule visualizer if not assigned
-            if (moleculeVisualizer == null)
+            if (moleculeVisualizerComponent == null)
             {
-                moleculeVisualizer = GetComponentInChildren<MoleculeVisualizer>();
+                // Try to find any component that implements IPickable
+                var visualizers = GetComponentsInChildren<MonoBehaviour>();
+                foreach (var component in visualizers)
+                {
+                    if (component is IPickable)
+                    {
+                        moleculeVisualizerComponent = component;
+                        break;
+                    }
+                }
             }
         }
 
 #if UNITY_EDITOR
+        void OnDrawGizmos()
+        {
+            // Always show molecule ID for easy identification during scene arrangement
+            if (!string.IsNullOrEmpty(moleculeId))
+            {
+                // Position label above the molecule
+                Vector3 labelPosition = transform.position + Vector3.up * 0.8f;
+                
+                // Use different colors based on state
+                UnityEditor.Handles.color = isPickedUp ? Color.cyan : 
+                                          isPlaced ? Color.green : 
+                                          Color.white;
+                
+                // Create a styled label with background
+                var style = new UnityEngine.GUIStyle(UnityEditor.EditorStyles.boldLabel);
+                style.normal.textColor = UnityEditor.Handles.color;
+                style.alignment = TextAnchor.MiddleCenter;
+                style.fontSize = 12;
+                
+                UnityEditor.Handles.Label(labelPosition, moleculeId, style);
+            }
+        }
+
         void OnDrawGizmosSelected()
         {
-            // Show original position in editor
+            // Show original position when selected
             Gizmos.color = Color.yellow;
             Vector3 origin = Application.isPlaying ? originalPosition : transform.position;
             Gizmos.DrawWireSphere(origin, 0.2f);
+            
+            // Show additional info when selected
+            if (!string.IsNullOrEmpty(moleculeId))
+            {
+                Vector3 infoPosition = transform.position + Vector3.down * 0.8f;
+                string statusInfo = $"ID: {moleculeId}\n" +
+                                  $"Picked: {isPickedUp}\n" +
+                                  $"Placed: {isPlaced}";
+                
+                var detailStyle = new UnityEngine.GUIStyle(UnityEditor.EditorStyles.helpBox);
+                detailStyle.normal.textColor = Color.white;
+                detailStyle.alignment = TextAnchor.MiddleCenter;
+                detailStyle.fontSize = 10;
+                
+                UnityEditor.Handles.Label(infoPosition, statusInfo, detailStyle);
+            }
         }
 #endif
     }

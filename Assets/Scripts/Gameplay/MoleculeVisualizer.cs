@@ -8,7 +8,7 @@ namespace Gameplay
     /// Procedurally generates and animates a molecule visual using simple shapes.
     /// Creates orbiting particles with glow effects that can be accelerated.
     /// </summary>
-    public class MoleculeVisualizer : MonoBehaviour
+    public class MoleculeVisualizer : MonoBehaviour, IPickable
     {
         [TitleGroup("Shape Generation")]
         [Tooltip("Number of particles/atoms in the molecule")]
