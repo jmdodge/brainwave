@@ -45,6 +45,16 @@ namespace Gameplay
         [Range(0.1f, 10f)]
         [SerializeField] float frequency = 2f;
 
+        [TitleGroup("Wave Properties")]
+        [Tooltip("Enhance steep transitions for consistent line thickness (especially for sawtooth/square waves)")]
+        [SerializeField] bool enhanceSteepTransitions = true;
+
+        [TitleGroup("Wave Properties")]
+        [ShowIf("enhanceSteepTransitions")]
+        [Tooltip("Minimum angle threshold (degrees) to trigger transition enhancement")]
+        [Range(30f, 89f)]
+        [SerializeField] float steepTransitionThreshold = 70f;
+
         [TitleGroup("Circular Mode")]
         [ShowIf("renderMode", RenderMode.CircularBorder)]
         [Tooltip("Base radius of the circular wave")]
@@ -323,7 +333,8 @@ namespace Gameplay
                 currentPhase += waveFlowSpeed * speedMultiplier * Time.deltaTime;
             }
 
-            // Generate wave points based on render mode
+            // Generate base wave points
+            Vector3[] basePoints = new Vector3[waveResolution];
             for (int i = 0; i < waveResolution; i++)
             {
                 Vector3 point = renderMode switch
@@ -333,10 +344,21 @@ namespace Gameplay
                     _ => Vector3.zero
                 };
 
-                wavePoints[i] = point;
+                basePoints[i] = point;
+            }
+
+            // Enhance steep transitions if enabled
+            if (enhanceSteepTransitions && (waveType == WaveType.Sawtooth || waveType == WaveType.Square))
+            {
+                wavePoints = EnhanceSteepTransitions(basePoints);
+            }
+            else
+            {
+                wavePoints = basePoints;
             }
 
             // Apply points to LineRenderer
+            lineRenderer.positionCount = wavePoints.Length;
             lineRenderer.SetPositions(wavePoints);
         }
 
@@ -384,6 +406,49 @@ namespace Gameplay
                 WaveType.Sawtooth => 2f * (phase / (2f * Mathf.PI) - Mathf.Floor(phase / (2f * Mathf.PI) + 0.5f)),
                 _ => 0f
             };
+        }
+
+        /// <summary>
+        /// Enhances steep transitions by adding intermediate points to maintain consistent line thickness.
+        /// Particularly useful for sawtooth and square waves where vertical segments can appear thin.
+        /// </summary>
+        Vector3[] EnhanceSteepTransitions(Vector3[] originalPoints)
+        {
+            if (originalPoints.Length < 2) return originalPoints;
+
+            var enhancedPoints = new System.Collections.Generic.List<Vector3>();
+            float thresholdRadians = steepTransitionThreshold * Mathf.Deg2Rad;
+
+            for (int i = 0; i < originalPoints.Length; i++)
+            {
+                enhancedPoints.Add(originalPoints[i]);
+
+                // Check if we need to add intermediate points for the next segment
+                int nextIndex = (i + 1) % originalPoints.Length;
+                Vector3 current = originalPoints[i];
+                Vector3 next = originalPoints[nextIndex];
+
+                // Calculate the angle of the line segment
+                Vector3 direction = next - current;
+                float segmentAngle = Mathf.Abs(Mathf.Atan2(direction.y, direction.x));
+
+                // If the segment is steep enough, add intermediate points
+                if (segmentAngle > thresholdRadians || segmentAngle < (Mathf.PI - thresholdRadians))
+                {
+                    // For very steep segments, add 1-3 intermediate points
+                    float distance = direction.magnitude;
+                    int intermediateCount = Mathf.Clamp(Mathf.RoundToInt(distance / (lineWidth * 2f)), 1, 3);
+
+                    for (int j = 1; j <= intermediateCount; j++)
+                    {
+                        float t = (float)j / (intermediateCount + 1);
+                        Vector3 intermediatePoint = Vector3.Lerp(current, next, t);
+                        enhancedPoints.Add(intermediatePoint);
+                    }
+                }
+            }
+
+            return enhancedPoints.ToArray();
         }
 
         /// <summary>
@@ -442,7 +507,7 @@ namespace Gameplay
         /// </summary>
         void AnimateTrailParticles()
         {
-            if (!enableParticleTrail || trailParticles == null) return;
+            if (!enableParticleTrail || trailParticles == null || wavePoints == null || wavePoints.Length == 0) return;
 
             float speedMultiplier = isPickedUp ? pickupSpeedMultiplier : 1f;
 
@@ -454,7 +519,7 @@ namespace Gameplay
                 trailPositions[i] += trailSpeed * speedMultiplier * Time.deltaTime;
                 if (trailPositions[i] > 1f) trailPositions[i] -= 1f;
 
-                // Calculate position along the wave
+                // Calculate position along the wave (handle variable point count)
                 int waveIndex = Mathf.FloorToInt(trailPositions[i] * (wavePoints.Length - 1));
                 waveIndex = Mathf.Clamp(waveIndex, 0, wavePoints.Length - 1);
 
