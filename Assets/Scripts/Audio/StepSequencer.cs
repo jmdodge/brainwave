@@ -54,6 +54,9 @@ public sealed class StepSequencer : MonoBehaviour
     [SerializeField] bool quantizeStart = true;
     [Min(0f)] [SerializeField] float startQuantizationBeats = 1f;
 
+    [Tooltip("Resume playback from the step matching the current beat in the bar (e.g., starting at beat 3 plays step 3). Steps wrap if sequence is shorter than bar.")]
+    [SerializeField] bool resumeFromBeat = false;
+
     [TitleGroup("Timing")]
     [Tooltip("Global timing offset in beats. Negative values make events fire earlier, positive values make them fire later.")]
     [SerializeField]
@@ -598,9 +601,34 @@ public sealed class StepSequencer : MonoBehaviour
      */
     void BeginPlaybackAtBeat(double startBeat)
     {
-        playbackStartBeat = startBeat;
-        currentPlayingStepIndex = 0;
-        totalStepsScheduled = 0;
+        int startingStepIndex = 0;
+        double adjustedStartBeat = startBeat;
+
+        // Calculate which step to start from based on beat in bar
+        if (resumeFromBeat && tempoManager != null && tempoManager.TransportRunning && runtimeSteps.Count > 0)
+        {
+            // Get current beat in bar (1-indexed: 1, 2, 3, 4)
+            int beatInBar = tempoManager.CurrentBeatInBar;
+            // Convert to 0-indexed (0, 1, 2, 3)
+            int beatIndex = beatInBar - 1;
+
+            // Map to step index (wraps if sequence is shorter than bar)
+            startingStepIndex = beatIndex % runtimeSteps.Count;
+
+            // Calculate duration of skipped steps
+            double skippedDuration = 0;
+            for (int i = 0; i < startingStepIndex; i++)
+            {
+                skippedDuration += Math.Max(minStepDurationBeats, runtimeSteps[i].durationBeats);
+            }
+
+            // Adjust start beat backwards so CalculateStepStartBeat works correctly
+            adjustedStartBeat = startBeat - skippedDuration;
+        }
+
+        playbackStartBeat = adjustedStartBeat;
+        currentPlayingStepIndex = startingStepIndex;
+        totalStepsScheduled = startingStepIndex;
         isRunning = true;
         noteActive = false;
         activeGenerator = null;
