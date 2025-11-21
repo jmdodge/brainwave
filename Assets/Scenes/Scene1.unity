@@ -146,7 +146,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 31024752}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &31024754
 Camera:
   m_ObjectHideFlags: 0
@@ -748,7 +748,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 41.100037, y: -112.899994}
+  m_AnchoredPosition: {x: 41.100098, y: -112.899994}
   m_SizeDelta: {x: 400, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &68317388
@@ -2074,6 +2074,7 @@ MonoBehaviour:
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
+  resumeFromBeat: 0
   timingOffsetBeats: 0
   steps:
   - rest: 1
@@ -2858,6 +2859,7 @@ Transform:
   - {fileID: 555354318}
   - {fileID: 270142874}
   - {fileID: 2092576580}
+  - {fileID: 1626839723}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &331759373
@@ -3367,6 +3369,7 @@ GameObject:
   - component: {fileID: 456517719}
   - component: {fileID: 456517718}
   - component: {fileID: 456517722}
+  - component: {fileID: 456517723}
   m_Layer: 0
   m_Name: Audiolizer
   m_TagString: Untagged
@@ -3473,7 +3476,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -3537,6 +3540,7 @@ MonoBehaviour:
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
+  resumeFromBeat: 0
   timingOffsetBeats: 0
   steps:
   - rest: 0
@@ -3582,6 +3586,22 @@ MonoBehaviour:
   pitchDecay: 0.1
   harmonicMix: 0.161
   clickAmount: 0.284
+--- !u!114 &456517723
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 456517716}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46d0c1c1913179443b6229b301170967, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::Audio.AudioPanner2D
+  worldXMin: -10
+  worldXMax: 10
+  panStrength: 1
+  panSmoothing: 0.1
 --- !u!1 &537740677
 GameObject:
   m_ObjectHideFlags: 0
@@ -3649,6 +3669,7 @@ MonoBehaviour:
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
+  resumeFromBeat: 0
   timingOffsetBeats: 0
   steps:
   - rest: 0
@@ -4491,6 +4512,7 @@ MonoBehaviour:
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
+  resumeFromBeat: 0
   timingOffsetBeats: 0
   steps:
   - rest: 0
@@ -6614,6 +6636,7 @@ MonoBehaviour:
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
+  resumeFromBeat: 0
   timingOffsetBeats: 0
   steps:
   - rest: 1
@@ -7971,6 +7994,7 @@ MonoBehaviour:
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
+  resumeFromBeat: 0
   timingOffsetBeats: 0
   steps:
   - rest: 0
@@ -8273,6 +8297,7 @@ MonoBehaviour:
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
+  resumeFromBeat: 0
   timingOffsetBeats: 0
   steps:
   - rest: 0
@@ -9337,6 +9362,7 @@ MonoBehaviour:
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
+  resumeFromBeat: 0
   timingOffsetBeats: 0
   steps:
   - rest: 0
@@ -11399,6 +11425,7 @@ MonoBehaviour:
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
+  resumeFromBeat: 0
   timingOffsetBeats: 0
   steps:
   - rest: 0
@@ -11419,6 +11446,46 @@ MonoBehaviour:
     onStepEnd:
       m_PersistentCalls:
         m_Calls: []
+--- !u!1 &1626839722
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1626839723}
+  - component: {fileID: 1626839724}
+  m_Layer: 0
+  m_Name: AudioListener
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1626839723
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1626839722}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -2.55, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 329640187}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!81 &1626839724
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1626839722}
+  m_Enabled: 1
 --- !u!1 &1633525429
 GameObject:
   m_ObjectHideFlags: 0
@@ -12201,6 +12268,7 @@ GameObject:
   - component: {fileID: 1834985195}
   - component: {fileID: 1834985194}
   - component: {fileID: 1834985198}
+  - component: {fileID: 1834985199}
   m_Layer: 0
   m_Name: Audiolizer
   m_TagString: Untagged
@@ -12274,7 +12342,7 @@ AudioSource:
   MinDistance: 1
   MaxDistance: 500
   Pan2D: 0
-  rolloffMode: 0
+  rolloffMode: 1
   BypassEffects: 0
   BypassListenerEffects: 0
   BypassReverbZones: 0
@@ -12307,7 +12375,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -12395,6 +12463,7 @@ MonoBehaviour:
   standaloneBpm: 100
   quantizeStart: 1
   startQuantizationBeats: 1
+  resumeFromBeat: 1
   timingOffsetBeats: 0
   steps:
   - rest: 0
@@ -12492,6 +12561,22 @@ AudioReverbFilter:
   m_LFReference: 250
   m_ReflectionsDelay: 0
   m_ReverbPreset: 26
+--- !u!114 &1834985199
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1834985192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46d0c1c1913179443b6229b301170967, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: GameScripts::Audio.AudioPanner2D
+  worldXMin: -10
+  worldXMax: 10
+  panStrength: 1
+  panSmoothing: 0.1
 --- !u!1 &1861511055
 GameObject:
   m_ObjectHideFlags: 0
