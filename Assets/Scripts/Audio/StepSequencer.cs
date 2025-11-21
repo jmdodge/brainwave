@@ -54,11 +54,14 @@ public sealed class StepSequencer : MonoBehaviour
     [SerializeField] bool quantizeStart = true;
     [Min(0f)] [SerializeField] float startQuantizationBeats = 1f;
 
-    [Tooltip("Resume playback from the step matching the current beat in the bar (e.g., starting at beat 3 plays step 3). Steps wrap if sequence is shorter than bar.")]
-    [SerializeField] bool resumeFromBeat = false;
+    [Tooltip(
+        "Resume playback from the step matching the current beat in the bar (e.g., starting at beat 3 plays step 3). Steps wrap if sequence is shorter than bar.")]
+    [SerializeField]
+    bool resumeFromBeat = false;
 
     [TitleGroup("Timing")]
-    [Tooltip("Global timing offset in beats. Negative values make events fire earlier, positive values make them fire later.")]
+    [Tooltip(
+        "Global timing offset in beats. Negative values make events fire earlier, positive values make them fire later.")]
     [SerializeField]
     float timingOffsetBeats = 0f;
 
@@ -270,7 +273,8 @@ public sealed class StepSequencer : MonoBehaviour
             // Use per-step tag if specified, otherwise use default tag
             string eventTag = !string.IsNullOrEmpty(step.eventTag) ? step.eventTag : defaultEventTag;
 
-            tempoManager.RegisterScheduledEvent(offsetStepStartBeat, this, eventTypeString, stepIndexInSequence, eventTag);
+            tempoManager.RegisterScheduledEvent(offsetStepStartBeat, this, eventTypeString, stepIndexInSequence,
+                eventTag);
             Debug.Log(
                 $"[StepSequencer] Registered {eventTypeString} {stepIndexInSequence} at beat {offsetStepStartBeat:F2} (offset: {timingOffsetBeats:F3}) with tag '{eventTag}'");
         }
@@ -609,13 +613,47 @@ public sealed class StepSequencer : MonoBehaviour
         {
             // Get current beat in bar (1-indexed: 1, 2, 3, 4)
             int beatInBar = tempoManager.CurrentBeatInBar;
-            // Convert to 0-indexed (0, 1, 2, 3)
-            int beatIndex = beatInBar - 1;
+            // Convert to 0-indexed beat position (0, 1, 2, 3)
+            double targetBeatInSequence = beatInBar - 1;
 
-            // Map to step index (wraps if sequence is shorter than bar)
-            startingStepIndex = beatIndex % runtimeSteps.Count;
+            // Calculate total duration of the sequence to handle wrapping
+            double totalSequenceDuration = 0;
+            int sequenceLength = runtimeSteps.Count;
+            for (int i = 0; i < sequenceLength; i++)
+            {
+                totalSequenceDuration += Math.Max(minStepDurationBeats, runtimeSteps[i].durationBeats);
+            }
 
-            // Calculate duration of skipped steps
+            // If sequence is longer than the bar, find position within the repeating pattern
+            // Example: 4/4 bar with 6-beat sequence -> beat 3 maps to beat 3, beat 5 maps to beat 1
+            if (totalSequenceDuration > 0)
+            {
+                targetBeatInSequence = targetBeatInSequence % totalSequenceDuration;
+            }
+
+            // Find which step should be playing at targetBeatInSequence
+            // by walking through steps and checking if target falls within each step's time range
+            startingStepIndex = 0;
+            double stepStartBeat = 0;
+
+            for (int i = 0; i < sequenceLength; i++)
+            {
+                double stepDuration = Math.Max(minStepDurationBeats, runtimeSteps[i].durationBeats);
+                double stepEndBeat = stepStartBeat + stepDuration;
+
+                // If target beat falls within this step's duration, this is our starting step
+                // Example: Step 0 (2 beats) covers beats 0-2, Step 1 (1 beat) covers beats 2-3
+                if (targetBeatInSequence >= stepStartBeat && targetBeatInSequence < stepEndBeat)
+                {
+                    startingStepIndex = i;
+                    break;
+                }
+
+                stepStartBeat = stepEndBeat;
+            }
+
+            // Calculate how much time has elapsed from the beginning of the sequence
+            // to the start of our target step (this accounts for variable step durations)
             double skippedDuration = 0;
             for (int i = 0; i < startingStepIndex; i++)
             {
@@ -623,6 +661,7 @@ public sealed class StepSequencer : MonoBehaviour
             }
 
             // Adjust start beat backwards so CalculateStepStartBeat works correctly
+            // This ensures the step timing calculations remain accurate
             adjustedStartBeat = startBeat - skippedDuration;
         }
 
