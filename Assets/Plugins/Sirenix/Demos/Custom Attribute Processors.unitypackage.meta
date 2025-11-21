@@ -1,8 +1,7 @@
 fileFormatVersion: 2
-guid: 90eaa0dc28c1934408dc1c02e13a507f
-timeCreated: 1628274352
-licenseType: Store
-TextScriptImporter:
+guid: f597f19f656ba56eae4f6a3a7cc528f4
+timeCreated: 1488828285
+DefaultImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
@@ -11,5 +10,5 @@ AssetOrigin:
   productId: 89041
   packageName: Odin Inspector and Serializer
   packageVersion: 4.0.1.0
-  assetPath: Assets/Plugins/Sirenix/Odin Inspector/Assets/Editor/ConfigData.bytes
+  assetPath: Assets/Plugins/Sirenix/Demos/Custom Attribute Processors.unitypackage
   uploadId: 819718
