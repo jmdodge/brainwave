@@ -620,5 +620,27 @@ namespace Gameplay
         {
             CleanupTrailParticles();
         }
+
+#if UNITY_EDITOR
+        [TitleGroup("Debug")]
+        [Button("Test Pickup State")]
+        void TestPickupState()
+        {
+            SetPickedUpState(!isPickedUp);
+        }
+
+        [TitleGroup("Debug")]
+        [Button("Recreate Material")]
+        void RecreateMaterial()
+        {
+            if (lineRenderer != null)
+            {
+                Material mat = new Material(Shader.Find("Sprites/Default"));
+                mat.color = waveColor * glowIntensity;
+                lineRenderer.material = mat;
+                UpdateVisualEffects();
+            }
+        }
+#endif
     }
 }
